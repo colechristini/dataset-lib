@@ -1,6 +1,6 @@
 package tech.pod.dataset;
 
-public interface dataset {
+public static interface dataset {
 
     //Import
 
@@ -20,6 +20,14 @@ public interface dataset {
 
     void appendNumBatch(File[] file,int[] pointer);
 
+    void importNumSets(File file);
+    
+    void importNumSetsBatch(File[] files);
+    
+    void appendNumSets(File file,int[] pointer);
+    
+    void appendNumSetsBatch(File[] file,int[] pointer);
+
     //Clean
 
     void cleanNoise(int variance);
@@ -32,15 +40,17 @@ public interface dataset {
 
     void cleanArticles(String[] articleList);
 
-    void cleanNouns(String noun);
+    void cleanNouns();
 
-    void cleanVerbs(String verb);
+    void cleanVerbs();
 
-    void cleanAdjectives(String adjective);
+    void cleanAdjectives();
 
-    void cleanAdverbs(String adverb);
+    void cleanAdverbs();
 
-    void cleanPrepositions(String preposition);
+    void cleanPrepositions();
+
+    void filterCustom(String regex);
 
     //Filter
     
@@ -59,6 +69,7 @@ public interface dataset {
     void transform(int amount);
 
     void lateralTransform(int amount);
+    
     
     //Reduce
 
@@ -104,6 +115,7 @@ public interface dataset {
 
     void storeGenSetBatch();
     //Map
+
 
     //Search
 
