@@ -1,5 +1,7 @@
 package tech.pod.dataset;
-
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 public static interface dataset {
 
     //Import
@@ -60,9 +62,21 @@ public static interface dataset {
 
     void filterSlope(int min, int max);
 
-    void clamp(int min, int max);
-
     void lateralThreshold(int min, int max);
+
+    //Sel/Del
+
+    void select(int start, int end);
+
+    void selectFromFilter();
+
+    void pushToCommandStack();
+
+	void delete();
+	
+    //Transform
+
+    void clamp();
 
     void lateralClamp(int min, int max);
 
@@ -78,6 +92,9 @@ public static interface dataset {
     void reducePattern(String genPattern);
 
     void reduceSection(int min, int max);
+
+   
+    
 
     //Index
 
@@ -116,10 +133,51 @@ public static interface dataset {
     void storeGenSetBatch();
     //Map
 
+	void mapInt();
+
+	void mapIntMatrix();
+
+	void mapStrings();
+
+	void mapStringMatrix();
+
+	void mapFloat();
+
+	void mapFloatMatrix();
+
+	
 
     //Search
 
+	void searchRegex(String regex);
+
+	void searchAbsoluteString(String str);
+
+	void searchAbsoluteInt(int num);
+
+	void searchAbsoluteFloat(float num);
+	
+	void searchRangeNum(int min, int max);
+
+	void SearchFuzzy(String word);
+
+	void searchMultStrings(String[] words);
+
+	void searchMultStringsFuzzy(String[] words);
+
+	void searchMultAbsoluteInts(int[] nums);
+
+	void searchMultAbsoluteFloats(int[] nums);
+
+	void searchMultRangeNum(int[] mins, int[] maxs);
+	
     //Query
+
+	void queryAll();
+	
+	void query()
+
+	void queryTop();
 
     //Dashboard
 }
