@@ -3,28 +3,19 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-class AbstractDataset implements dataset {
- ConcurrentLinkedDeque CommandStack;
+class AbstractDataset extends Thread implements dataset {
+ Deque<int[]> CommandStack=new ConcurrentLinkedDeque<int[]>();
  List < String > preStringMap = new ArrayList < String > ();
  List < Double > preNumMap = new ArrayList < Double > ();
- List < List < Double >> preNumMatrixMap = new ArrayList < List < Double >> ();
+ List < List < Double > > preNumMapMatrix = new ArrayList < ArrayList< Double > > ();
+
  AbstractDataset() {}
 
  //Import
 
- void importTextSingle(File file) {
-  InputStream is = new FileInputStream(file);
-  BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-
-  String line = buf.readLine();
-  StringBuilder sb = new StringBuilder();
-
-  while (line != null) {
-   sb.append(line).append("\n");
-   line = buf.readLine();
-  }
-
-  String fileAsString = sb.toString();
+ void importText(File file) {
+    String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
+    
   preStringMap.clear();
   preStringMap.append(fileAsString);
 
@@ -32,83 +23,104 @@ class AbstractDataset implements dataset {
 
  void importTextBatch(File[] files) {
   preStringMap.clear();
-  for (File i: files) {
-   InputStream is = new FileInputStream(i);
-   BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-
-   String line = buf.readLine();
-   StringBuilder sb = new StringBuilder();
-
-   while (line != null) {
-    sb.append(line).append("\n");
-    line = buf.readLine();
-   }
-
-   String fileAsString = sb.toString();
+  for(int i=0;i<files.length;i++){
+    String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
 
    preStringMap.append(fileAsString);
   }
  }
 
  void appendText(File file, int pointer) {
-  InputStream is = new FileInputStream(file);
-  BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-
-  String line = buf.readLine();
-  StringBuilder sb = new StringBuilder();
-
-  while (line != null) {
-   sb.append(line).append("\n");
-   line = buf.readLine();
-  }
-
-  String fileAsString = sb.toString();
+    String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
 
   preStringMap.add(fileAsString, pointer);
  }
 
  void appendTextBatch(File[] files, int[] pointer) {
-
-  for (int i = 0; i < files.length; i++) {
-   InputStream is = new FileInputStream(files[i]);
-   BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-
-   String line = buf.readLine();
-   StringBuilder sb = new StringBuilder();
-
-   while (line != null) {
-    sb.append(line).append("\n");
-    line = buf.readLine();
-   }
-
-   String fileAsString = sb.toString();
+for(int i=0;i<files.length;i++){
+    String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
 
    preStringMap.add(fileAsString, pointer[i]);
   }
+}
+
+ void importNum(File file) {
+    String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
+    List<String> temp = new ArrayList<String>();
+    temp.append(split(fileAsString,","));
+    preNumMap.append(Double.ParseDouble(temp));
  }
 
- void importNum(File file) {}
+ void importNumBatch(File[] files) {
+     
+    preStringMap.clear();
+    for(int i=0;i<files.length;i++){
+    String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
+     List<String> temp = new ArrayList<String>();
+     temp.append(split(fileAsString,","));
+     preNumMap.get(i).append(Double.ParseDouble(temp));
+     temp.clear();
+     
+    }
+}
 
- void importNumBatch(File[] files) {}
+ void appendNum(File file, int[] pointer) {
+    String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
+    List<String> temp = new ArrayList<String>();
+    temp.append(split(fileAsString,","));
+    preNumMap.add(Double.ParseDouble(temp),pointer);
+ }
 
- void appendNum(File file, int[] pointer) {}
-
- void appendNumBatch(File[] file, int[] pointer) {}
-
- void importNumSets(File file) {}
-
- void importNumSetsBatch(File[] files) {}
-
- void appendNumSets(File file, int[] pointer) {}
-
- void appendNumSetsBatch(File[] file, int[] pointer) {}
+ void appendNumBatch(File[] files, int[] pointer) {
+   
+  for(int i=0;i<files.length();i++){
+     String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
+     List<String> temp = new ArrayList<String>();
+     temp.append(split(fileAsString,","));
+     preNumMap.add(Double.ParseDouble(temp),pointers[i]);
+     temp.clear();
+    }
+}
 
  //Clean
 
- void cleanNoise(int variance) {}
+void smooth(int width,int[]... thresholds){
+int max=thresholds[1];
+if(thresholds.length==2){
+for(int i=thresholds[0];i<max;i++){
+if(i>1 || i==1){
+    int v;
+    v=preNumMap.get(i);
+    for(int z=0;z<width;z++){
+        v+=preNumMap.get(i+z);
+        v+=preNumMap.get(i-z);
+        
+            }
+    v/=width;
+    preNumMap.set(i,v);
+        }
+    }
+}
 
- void smoothPeaks() {}
+    else{
+        for(int q=0;q<CommandStack.length;q++){int[] temp=CommandStack.pop(q);
+        for(int i=temp[0];i<temp[1];i++){
+            if(i>1 || i==1){
+                int v;
+                v=preNumMap.get(i);
+                for(int z=0;z<width;z++){
+                    v+=preNumMap.get(i+z);
+                    v+=preNumMap.get(i-z);
+                    
+                }
+                v/=width;
+                preNumMap.set(i,v);
+                }
+            }
 
+        }
+    }
+}
  void lengthenData(int factor) {}
 
  void cleanWords(String[] words) {}
