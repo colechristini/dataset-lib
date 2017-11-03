@@ -2,267 +2,300 @@ package main.java.tech.pod.dataset;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-class AbstractDataset extends Thread implements dataset {
- Deque<int[]> CommandStack=new ConcurrentLinkedDeque<int[]>();
- List < String > preStringMap = new ArrayList < String > ();
- List < Double > preNumMap = new ArrayList < Double > ();
- List < List < Double > > preNumMapMatrix = new ArrayList < ArrayList< Double > > ();
+class AbstractDataset implements dataset {
+    private static final Logger logger = Logger.getLogger(AbstractDataset.class.getName());
+    Deque < int[] > CommandStack = new ConcurrentLinkedDeque < int[] > ();
+    List < String > preStringMap = new ArrayList < String > ();
+    List < Double > preNumMap = new ArrayList < Double[] > ();
+    //List < List < Double > > preNumMapMatrix = new ArrayList < ArrayList< Double > > ();
 
- AbstractDataset() {}
+    AbstractDataset() {}
 
- //Import
+    //Import
 
- void importText(File file) {
-    String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
-    
-  preStringMap.clear();
-  preStringMap.append(fileAsString);
+    void importText(File file) {
+        String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
 
- }
+        preStringMap.clear();
+        preStringMap.append(fileAsString);
 
- void importTextBatch(File[] files) {
-  preStringMap.clear();
-  for(int i=0;i<files.length;i++){
-    String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
-
-   preStringMap.append(fileAsString);
-  }
- }
-
- void appendText(File file, int pointer) {
-    String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
-
-  preStringMap.add(fileAsString, pointer);
- }
-
- void appendTextBatch(File[] files, int[] pointer) {
-for(int i=0;i<files.length;i++){
-    String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
-
-   preStringMap.add(fileAsString, pointer[i]);
-  }
-}
-
- void importNum(File file) {
-    String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
-    List<String> temp = new ArrayList<String>();
-    temp.append(split(fileAsString,","));
-    preNumMap.append(Double.ParseDouble(temp));
- }
-
- void importNumBatch(File[] files) {
-     
-    preStringMap.clear();
-    for(int i=0;i<files.length;i++){
-    String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
-     List<String> temp = new ArrayList<String>();
-     temp.append(split(fileAsString,","));
-     preNumMap.get(i).append(Double.ParseDouble(temp));
-     temp.clear();
-     
     }
-}
 
- void appendNum(File file, int[] pointer) {
-    String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
-    List<String> temp = new ArrayList<String>();
-    temp.append(split(fileAsString,","));
-    preNumMap.add(Double.ParseDouble(temp),pointer);
- }
+    void importTextBatch(File[] files) {
+        preStringMap.clear();
+        for (int i = 0; i < files.length; i++) {
+            String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
 
- void appendNumBatch(File[] files, int[] pointer) {
-   
-  for(int i=0;i<files.length();i++){
-     String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
-     List<String> temp = new ArrayList<String>();
-     temp.append(split(fileAsString,","));
-     preNumMap.add(Double.ParseDouble(temp),pointers[i]);
-     temp.clear();
-    }
-}
-
- //Clean
-
-void smooth(int width,int[]... thresholds){
-int max=thresholds[1];
-if(thresholds.length==2){
-for(int i=thresholds[0];i<max;i++){
-if(i>1 || i==1){
-    int v;
-    v=preNumMap.get(i);
-    for(int z=0;z<width;z++){
-        v+=preNumMap.get(i+z);
-        v+=preNumMap.get(i-z);
-        
-            }
-    v/=width;
-    preNumMap.set(i,v);
+            preStringMap.append(fileAsString);
         }
     }
-}
 
-    else{
-        for(int q=0;q<CommandStack.length;q++){int[] temp=CommandStack.pop(q);
-        for(int i=temp[0];i<temp[1];i++){
-            if(i>1 || i==1){
-                int v;
-                v=preNumMap.get(i);
-                for(int z=0;z<width;z++){
-                    v+=preNumMap.get(i+z);
-                    v+=preNumMap.get(i-z);
-                    
-                }
-                v/=width;
-                preNumMap.set(i,v);
-                }
-            }
+    void appendText(File file, int pointer) {
+        String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
+
+        preStringMap.add(fileAsString, pointer);
+    }
+
+    void appendTextBatch(File[] files, int[] pointer) {
+        for (int i = 0; i < files.length; i++) {
+            String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
+
+            preStringMap.add(fileAsString, pointer[i]);
+        }
+    }
+
+    void importNum(File file) {
+        String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
+        List < String > temp = new ArrayList < String > ();
+        temp.append(split(fileAsString, ","));
+        preNumMap.append(Double.ParseDouble(temp));
+    }
+
+    void importNumBatch(File[] files) {
+
+        preStringMap.clear();
+        for (int i = 0; i < files.length; i++) {
+            String fileAsString = new String(Files.readAllBytes(Paths.get(files[i])));
+            List < String > temp = new ArrayList < String > ();
+            temp.append(split(fileAsString, ","));
+            preNumMap.get(i).append(Double.ParseDouble(temp));
+            temp.clear();
 
         }
     }
-}
- void lengthenData(int factor) {}
 
- void cleanWords(String[] words) {}
+    void appendNum(File file, int[] pointer) {
+        String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
+        List < String > temp = new ArrayList < String > ();
+        temp.append(split(fileAsString, ","));
+        preNumMap.add(Double.ParseDouble(temp), pointer);
+    }
+
+    void appendNumBatch(File[] files, int[] pointer) {
+
+        for (int i = 0; i < files.length(); i++) {
+            String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
+            List < String > temp = new ArrayList < String > ();
+            temp.append(split(fileAsString, ","));
+            preNumMap.add(Double.ParseDouble(temp), pointers[i]);
+            temp.clear();
+        }
+    }
+
+    //Clean
+
+    void smooth(int width, int[]...thresholds) {
+        int max = thresholds[1];
+        if (thresholds.length == 2) {
+            for (int i = thresholds[0]; i < max; i++) {
+                if (i > 1 || i == 1) {
+                    int v;
+                    v = preNumMap.get(i);
+                    for (int z = 0; z < width; z++) {
+                        v += preNumMap.get(i + z);
+                        v += preNumMap.get(i - z);
+
+                    }
+                    v /= width;
+                    preNumMap.set(i, v);
+                }
+            }
+        } else {
+            for (int q = 0; q < CommandStack.length; q++) {
+                int[] temp = CommandStack.pop(q);
+                for (int i = temp[0]; i < temp[1]; i++) {
+                    if (i > 1 || i == 1) {
+                        int v;
+                        v = preNumMap.get(i);
+                        for (int z = 0; z < width; z++) {
+                            v += preNumMap.get(i + z);
+                            v += preNumMap.get(i - z);
 
- void cleanArticles(String[] articleList) {}
+                        }
+                        v /= width;
+                        preNumMap.set(i, v);
+                    }
+                }
 
- void cleanNouns() {}
+            }
+        }
+    }
+    void lengthenData(int factor, int...selection) {
+        if (selection.length == 2) {
+            for (int i = selection[0]; i < selection[1]; i++) {
+                for (int x = 0; x < factor; x++) {
+                    preNumMap.add(i + x, 0);
 
- void cleanVerbs() {}
+                }
+            }
 
- void cleanAdjectives() {}
+        } else {
+            if (selection.length == 1) {
+                int temp[] = CommandStack.pop(selection[0]);
+                for (int i = temp[0]; i < temp[1]; i++) {
+                    for (int x = 0; x < factor; x++) {
+                        preNumMap.add(i + x, 0);
 
- void cleanAdverbs() {}
+                    }
+                }
+            } else {
+                int temp[];
+                for (int z = 0; z < commandStack.length; z++) {
+                    temp = CommandStack.pop(selection[z]);
+                    for (int i = temp[0]; i < temp[1]; i++) {
+                        for (int x = 0; x < factor; x++) {
+                            preNumMap.add(i + x, 0);
 
- void cleanPrepositions() {}
+                        }
+                    }
+                }
+            }
+        }
+    }
 
- void filterCustom(String regex) {}
+    void cleanWords(String[] words, int...selection) {
+        List < List < String >> temp = new ArrayList < ArrayList < String >> ();
+        temp.get(0).append(split(preStringMap(" ")));
+        for (int i = 0; i < temp.get(0).length; i++) {
+            temp.get(0).set(i, String.format("%1$" + 1 + "s", temp.get(0).get(i)));
+            temp.get(0).set(String.format("%1$-" + 1 + "s", temp.get(0).get(i)));
+        }
+    }
 
- //Filter
+    void cleanNouns() {}
 
- void filterThreshold(int min, int max) {}
+    void cleanVerbs() {}
 
- void filterStandardDeviation(int max) {}
+    void cleanAdjectives() {}
 
- void filterSlope(int min, int max) {}
+    void cleanAdverbs() {}
 
- void lateralThreshold(int min, int max) {}
+    void cleanPrepositions() {}
 
- //Sel/Del
+    void filterCustom(String regex) {
 
- void select(int start, int end) {}
+    }
 
- void selectFromFilter() {}
+    //Filter
 
- void pushToCommandStack() {}
+    void filterThreshold(int min, int max) {}
 
- void delete() {}
+    void filterStandardDeviation(int max) {}
 
- //Transform
+    void filterSlope(int min, int max) {}
 
- void clamp() {}
+    void lateralThreshold(int min, int max) {}
 
- void lateralClamp(int min, int max) {}
+    //Sel/Del
 
- void transform(int amount) {}
+    void select(int start, int end) {}
 
- void lateralTransform(int amount) {}
+    void selectFromFilter() {}
 
+    void pushToCommandStack() {}
 
- //Reduce
+    void delete() {}
 
- void reduceOccurences() {}
+    //Transform
 
- void reducePattern(String genPattern) {}
+    void clamp() {}
 
- void reduceSection(int min, int max) {}
+    void lateralClamp(int min, int max) {}
 
+    void transform(int amount) {}
 
+    void lateralTransform(int amount) {}
 
 
- //Index
+    //Reduce
 
- void indexBySchema(Schema schema) {}
+    void reduceOccurences() {}
 
- void indexTreeBySchema(int length, int branches, Schema schema) {}
+    //Index
 
- void indexMatrixBySchema(int length, int depth, Schema schema) {}
+    void indexBySchema(Schema schema) {}
 
- void indexAbsolute(int length) {}
+    void indexTreeBySchema(int length, int branches, Schema schema) {}
 
- void indexTreeAbsolute(int branches, int length) {}
+    void indexMatrixBySchema(int length, int depth, Schema schema) {}
 
- void indexMatrixAbsolute(int length, int depth) {}
+    void indexAbsolute(int length) {}
 
- //Generate
+    void indexTreeAbsolute(int branches, int length) {}
 
- void genConsonantSet() {}
+    void indexMatrixAbsolute(int length, int depth) {}
 
- void genVowelSet() {}
+    //Generate
 
- void genPhonemeSet() {}
+    void genConsonantSet() {}
 
- //Same?
+    void genVowelSet() {}
 
- void genMetahphoneSet() {}
+    void genPhonemeSet() {}
 
- void genCoordinateSet() {}
+    //Same?
 
- void genCoordinateSetMatrix() {}
+    void genMetahphoneSet() {}
 
- void genMatrixSet() {}
+    void genCoordinateSet() {}
 
- void storeGenSet() {}
+    void genCoordinateSetMatrix() {}
 
- void storeGenSetBatch() {}
-  //Map
+    void genMatrixSet() {}
 
- void mapInt() {}
+    void storeGenSet() {}
 
- void mapIntMatrix() {}
+    void storeGenSetBatch() {}
+    //Map
 
- void mapStrings() {}
+    void mapInt() {}
 
- void mapStringMatrix() {}
+    void mapIntMatrix() {}
 
- void mapFloat() {}
+    void mapStrings() {}
 
- void mapFloatMatrix() {}
+    void mapStringMatrix() {}
 
+    void mapFloat() {}
 
+    void mapFloatMatrix() {}
 
- //Search
 
- void searchRegex(String regex) {}
 
- void searchAbsoluteString(String str) {}
+    //Search
 
- void searchAbsoluteInt(int num) {}
+    void searchRegex(String regex) {}
 
- void searchAbsoluteFloat(float num) {}
+    void searchAbsoluteString(String str) {}
 
- void searchRangeNum(int min, int max) {}
+    void searchAbsoluteInt(int num) {}
 
- void SearchFuzzy(String word) {}
+    void searchAbsoluteFloat(float num) {}
 
- void searchMultStrings(String[] words) {}
+    void searchRangeNum(int min, int max) {}
 
- void searchMultStringsFuzzy(String[] words) {}
+    void SearchFuzzy(String word) {}
 
- void searchMultAbsoluteInts(int[] nums) {}
+    void searchMultStrings(String[] words) {}
 
- void searchMultAbsoluteFloats(int[] nums) {}
+    void searchMultStringsFuzzy(String[] words) {}
 
- void searchMultRangeNum(int[] mins, int[] maxs) {}
+    void searchMultAbsoluteInts(int[] nums) {}
 
- //Query
+    void searchMultAbsoluteFloats(int[] nums) {}
 
- void queryAll() {}
+    void searchMultRangeNum(int[] mins, int[] maxs) {}
 
- void query() {}
+    //Query
 
- void queryTop() {}
+    void queryAll() {}
+
+    void query() {}
+
+    void queryTop() {}
 
 
 
