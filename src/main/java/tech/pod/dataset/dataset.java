@@ -1,8 +1,7 @@
 package tech.pod.dataset;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-public static interface dataset {
+import java.io.File;
+
+public interface dataset {
 
     //Import
 
@@ -175,7 +174,7 @@ public static interface dataset {
 
 	void queryAll();
 	
-	void query()
+	void query();
 
 	void queryTop();
 

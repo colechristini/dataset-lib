@@ -1,4 +1,5 @@
-package main.java.tech.pod.dataset;
+package tech.pod.dataset;
+import java.io.File;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -9,8 +10,7 @@ class AbstractDataset implements dataset {
     private static final Logger logger = Logger.getLogger(AbstractDataset.class.getName());
     Deque < int[] > CommandStack = new ConcurrentLinkedDeque < int[] > ();
     List < String > preStringMap = new ArrayList < String > ();
-    List < Double > preNumMap = new ArrayList < Double[] > ();
-    //List < List < Double > > preNumMapMatrix = new ArrayList < ArrayList< Double > > ();
+    List < List < Double > > preNumMap = new ArrayList < ArrayList < Double > > ();
 
     AbstractDataset() {}
 
@@ -34,7 +34,7 @@ class AbstractDataset implements dataset {
     }
 
     void appendText(File file, int pointer) {
-        String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
+        String fileAsString = new String(File.readAllBytes(Paths.get(file)));
 
         preStringMap.add(fileAsString, pointer);
     }
@@ -67,11 +67,11 @@ class AbstractDataset implements dataset {
         }
     }
 
-    void appendNum(File file, int[] pointer) {
+    void appendNum(File file) {
         String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
         List < String > temp = new ArrayList < String > ();
         temp.append(split(fileAsString, ","));
-        preNumMap.add(Double.ParseDouble(temp), pointer);
+        preNumMap.append(Double.ParseDouble(temp));
     }
 
     void appendNumBatch(File[] files, int[] pointer) {
@@ -80,7 +80,7 @@ class AbstractDataset implements dataset {
             String fileAsString = new String(Files.readAllBytes(Paths.get(file)));
             List < String > temp = new ArrayList < String > ();
             temp.append(split(fileAsString, ","));
-            preNumMap.add(Double.ParseDouble(temp), pointers[i]);
+            preNumMap.append(Double.ParseDouble(temp));
             temp.clear();
         }
     }
@@ -102,7 +102,21 @@ class AbstractDataset implements dataset {
                     v /= width;
                     preNumMap.set(i, v);
                 }
-            }
+            }}
+           else if (thresholds.length == 1) {   int[] temp = CommandStack.pop(thresholds[0]);
+                for (int i = temp[0]; i < temp[1]; i++) {
+                    if (i > 1 || i == 1) {
+                        int v;
+                        v = preNumMap.get(i);
+                        for (int z = 0; z < width; z++) {
+                            v += preNumMap.get(i + z);
+                            v += preNumMap.get(i - z);
+    
+                        }
+                        v /= width;
+                        preNumMap.set(i, v);
+                    }
+                }
         } else {
             for (int q = 0; q < CommandStack.length; q++) {
                 int[] temp = CommandStack.pop(q);
@@ -132,8 +146,7 @@ class AbstractDataset implements dataset {
                 }
             }
 
-        } else {
-            if (selection.length == 1) {
+        } else if (selection.length == 1) {
                 int temp[] = CommandStack.pop(selection[0]);
                 for (int i = temp[0]; i < temp[1]; i++) {
                     for (int x = 0; x < factor; x++) {
@@ -154,14 +167,21 @@ class AbstractDataset implements dataset {
                 }
             }
         }
-    }
+    
 
-    void cleanWords(String[] words, int...selection) {
+    void cleanWords(String[] words,int z, int...selection) {
         List < List < String >> temp = new ArrayList < ArrayList < String >> ();
-        temp.get(0).append(split(preStringMap(" ")));
+        temp.get(0).append(split(preStringMap.get(z)," "));
+        for (int i = 0; i < temp.get(0).length; i++) {
+            words[i]= String.format("%1$" + 1 + "s", temp.get(0).get(i));
+            words[i]= String.format("%1$-" + 1 + "s", temp.get(0).get(i));
+        }
         for (int i = 0; i < temp.get(0).length; i++) {
             temp.get(0).set(i, String.format("%1$" + 1 + "s", temp.get(0).get(i)));
             temp.get(0).set(String.format("%1$-" + 1 + "s", temp.get(0).get(i)));
+        }
+        if(selection.length()==2){
+            
         }
     }
 
