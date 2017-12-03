@@ -5,18 +5,30 @@ import java.nio.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.List;
 import java.util.ArrayList;
 
 //import java.util.concurrent.*;
-public class MultiThreadedImport implements Callable < ByteBuffer > {
+public class ImportManager implements Callable < ByteBuffer > {
     RandomAccessFile file;
     int threadPoolSize;
-    MultiThreadedImport(RandomAccessFile file, int threadPoolSize) {
+    String globalLogger;
+    ImportManager(RandomAccessFile file, int threadPoolSize,String globalLogger) {
+        this.globalLogger=globalLogger;
         this.file = file;
         this.threadPoolSize = threadPoolSize;
     }
     public ByteBuffer call() throws Exception {
+        Logger logger = null;
+        if (globalLogger != null) {
+            logger=Logger.getLogger(globalLogger);
+        } else {
+            logger=Logger.getLogger(ImportThread.class.getName());
+        }
+        logger.entering(getClass().getName(), "call()");
+        
         ExecutorService exec = Executors.newFixedThreadPool(threadPoolSize);
         int byteBufferLength = (int) file.length() / threadPoolSize;
         Callable < ByteBuffer > [] thread = new ImportThread[threadPoolSize];
@@ -51,6 +63,8 @@ public class MultiThreadedImport implements Callable < ByteBuffer > {
 
 
         }
+        logger.logp(Level.INFO, "", "call()", "Import complete");
         return bufcol;
+        
     }
 }
