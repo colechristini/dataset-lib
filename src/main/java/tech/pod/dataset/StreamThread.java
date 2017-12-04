@@ -15,14 +15,14 @@ public class StreamThread implements Callable < ByteBuffer > {
 
     ByteBuffer buff;
     int port;
-    int status;
+   
     int bufferSize;
     ReentrantLock stop,
     pause;
-    StreamThread(int port, int status, int bufferSize, ReentrantLock stop, ReentrantLock pause) {
+    StreamThread(int port,  int bufferSize, ReentrantLock stop, ReentrantLock pause) {
 
         this.port = port;
-        this.status = status;
+       
         this.bufferSize = bufferSize;
         this.stop = stop;
         this.pause = pause;
@@ -40,6 +40,7 @@ public class StreamThread implements Callable < ByteBuffer > {
             channel.write(buff);
             if (!pause.isLocked()) {
                 MappedByteBuffer b = channel.map(MapMode.READ_WRITE, 0, (long) bufferSize);
+                b.clear();
             }
             temp.close();
         }
