@@ -24,8 +24,10 @@ public class UserAlgorithm {
         Logger logger = null;
         if (globalLogger != null) {
             logger=Logger.getLogger(globalLogger);
+            logger.entering(globalLogger, "runAlg()");
         } else {
             logger=Logger.getLogger(ImportThread.class.getName());
+            logger.entering(getClass().getName(), "runAlg()");
         }
         logger.entering(getClass().getName(), "runAlg()");
         File file = new File("./doAlg.java");

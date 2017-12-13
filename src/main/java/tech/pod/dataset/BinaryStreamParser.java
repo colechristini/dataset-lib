@@ -7,19 +7,34 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.nio.channels.FileChannel.MapMode;
 public class BinaryStreamParser < T > {
     ReentrantLock pauseLock;
     ReentrantLock stopLock;
-    BinaryStreamParser(ReentrantLock pauseLock, ReentrantLock stopLock) {
+    String globalLogger;
+    BinaryStreamParser(ReentrantLock pauseLock, ReentrantLock stopLock, String...globalLogger) {
         this.pauseLock = pauseLock;
         this.stopLock = stopLock;
+        if (globalLogger.length != 0) {
+            this.globalLogger = globalLogger[0];
+        }
     }
 
-    public List < T > binaryStreamDecode(int bufferLength,String type, Class < T > caster) {
+    public List < T > binaryStreamDecode(int bufferLength, String type, Class < T > caster, String tempName, List < T > output) {
+        Logger logger = null;
+        if (globalLogger != null) {
+            logger = Logger.getLogger(globalLogger);
+            logger.entering(globalLogger, "binaryStreamDecode()");
+        } else {
+            logger = Logger.getLogger(ImportThread.class.getName());
+            logger.entering(getClass().getName(), "binaryStreamDecode()");
+        }
+
         while (!stopLock.isLocked()) {
-            List < T > output = new ArrayList < T > ();
-            File f = new File("temp", "rw");
+
+            File f = new File(tempName, "rw");
             FileChannel channel;
             try {
                 channel = FileChannel.open(f.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
@@ -28,12 +43,13 @@ public class BinaryStreamParser < T > {
                     if (type == "string") {
                         CharBuffer charBuffer = b.asCharBuffer();
                         char[] array = charBuffer.array();
-                        String str = array.toString();
-                        String[] strs = str.split("//");
+                        String str2 = array.toString();
+                        String[] strs = str2.split("//");
                         for (String i: strs) {
                             T a = caster.cast(i);
                             output.add(a);
-                            return output;
+                            output.clear();
+                            //return output;
                         }
                     }
                     if (type == "num") {
@@ -42,13 +58,14 @@ public class BinaryStreamParser < T > {
                         for (double i: array) {
                             T a = caster.cast(i);
                             output.add(a);
-                            return output;
+                            output.clear();
+                            //return output;
 
                         }
                     }
                 }
             } catch (IOException e) {
-                //TODO: handle exception
+                logger.logp(Level.WARNING, "BinaryStreamParser", "binaryStreamDecode()", "IOException", e);
             }
 
 

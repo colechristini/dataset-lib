@@ -15,20 +15,23 @@ public class ImportManager implements Callable < ByteBuffer > {
     RandomAccessFile file;
     int threadPoolSize;
     String globalLogger;
-    ImportManager(RandomAccessFile file, int threadPoolSize,String globalLogger) {
-        this.globalLogger=globalLogger;
+    ImportManager(RandomAccessFile file, int threadPoolSize, String globalLogger) {
+        this.globalLogger = globalLogger;
         this.file = file;
         this.threadPoolSize = threadPoolSize;
     }
     public ByteBuffer call() throws Exception {
         Logger logger = null;
         if (globalLogger != null) {
-            logger=Logger.getLogger(globalLogger);
+            logger = Logger.getLogger(globalLogger);
+            logger.entering(globalLogger, "call()");
+
         } else {
-            logger=Logger.getLogger(ImportThread.class.getName());
+            logger = Logger.getLogger(ImportThread.class.getName());
+            logger.entering(getClass().getName(), "call()");
+
         }
-        logger.entering(getClass().getName(), "call()");
-        
+
         ExecutorService exec = Executors.newFixedThreadPool(threadPoolSize);
         int byteBufferLength = (int) file.length() / threadPoolSize;
         Callable < ByteBuffer > [] thread = new ImportThread[threadPoolSize];
@@ -63,8 +66,8 @@ public class ImportManager implements Callable < ByteBuffer > {
 
 
         }
-        logger.logp(Level.INFO, "", "call()", "Import complete");
+        logger.logp(Level.FINE, "", "call()", "Import complete");
         return bufcol;
-        
+
     }
 }

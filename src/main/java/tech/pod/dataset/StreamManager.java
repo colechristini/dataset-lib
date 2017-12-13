@@ -12,8 +12,8 @@ public class StreamManager {
     ReentrantLock stopLock;
     StreamThread thread;
 
-    StreamManager(int port, int status, int bufferSize) {
-        thread = new StreamThread(port, bufferSize, stopLock, pauseLock);
+    StreamManager(int port, int status, int bufferSize,ReentrantLock pauseLock,ReentrantLock stopLock,String tempName) {
+        thread = new StreamThread(port, bufferSize, stopLock, pauseLock,tempName);
     }
     public void start() {
         if (stopLock.isLocked()) {

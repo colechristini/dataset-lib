@@ -8,9 +8,9 @@ import java.util.logging.*;
 public class BinaryParser < T > {
     ByteBuffer buffer;
     String globalLogger;
-    BinaryParser(ByteBuffer buffer,String... globalLogger) {
-        if(globalLogger[0]!=null){
-            this.globalLogger=globalLogger[0];
+    BinaryParser(ByteBuffer buffer, String...globalLogger) {
+        if (globalLogger[0] != null) {
+            this.globalLogger = globalLogger[0];
         }
         this.buffer = buffer;
     }
@@ -18,15 +18,16 @@ public class BinaryParser < T > {
         List < T > Output = new ArrayList < T > ();
         Logger logger = null;
         if (globalLogger != null) {
-            logger=Logger.getLogger(globalLogger);
+            logger = Logger.getLogger(globalLogger);
+            logger.entering(globalLogger, "binaryDecode()");
         } else {
-            logger=Logger.getLogger(BinaryParser.class.getName());
+            logger = Logger.getLogger(BinaryParser.class.getName());
+            logger.entering(getClass().getName(), "binaryDecode()");
         }
-        logger.entering(getClass().getName(), "binaryDecode()");
+       
         if (type == "string") {
             logger.logp(Level.FINE, "BinaryParser", "binaryDecode", "beginning decode");
-            CharBuffer charBuffer = CharBuffer.allocate(buffer.position());
-            charBuffer = buffer.asCharBuffer();
+            CharBuffer charBuffer = buffer.asCharBuffer();
             char[] arr = charBuffer.array();
             String str = arr.toString();
             String[] strs = str.split("//");
@@ -48,8 +49,8 @@ public class BinaryParser < T > {
             }
 
         }
-        logger.logp(Level.FINE, "BinaryParser", "binaryDecode", "completed decode");
+        logger.logp(Level.FINEST, "BinaryParser", "binaryDecode", "completed decode");
         return Output;
-        
+
     }
 }

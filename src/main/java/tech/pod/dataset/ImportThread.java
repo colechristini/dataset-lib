@@ -21,13 +21,17 @@ public class ImportThread implements Callable < ByteBuffer > {
         this.start = start;
     }
     public ByteBuffer call() throws Exception {
-        Logger logger = null;
+        Logger logger = null;        
         if (globalLogger != null) {
             logger = Logger.getLogger(globalLogger);
+            logger.entering(globalLogger, "call()");
+           
         } else {
+            
             logger = Logger.getLogger(ImportThread.class.getName());
+            logger.entering(getClass().getName(), "call()");
         }
-        logger.entering(getClass().getName(), "doIt");
+        
 
         buf = ByteBuffer.allocate(bytesAllocated);
         int bytesRead = 0;

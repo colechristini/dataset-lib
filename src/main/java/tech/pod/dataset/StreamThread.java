@@ -15,14 +15,13 @@ public class StreamThread implements Callable < ByteBuffer > {
 
     ByteBuffer buff;
     int port;
-   
+    String tempName;
     int bufferSize;
-    ReentrantLock stop,
-    pause;
-    StreamThread(int port,  int bufferSize, ReentrantLock stop, ReentrantLock pause) {
+    ReentrantLock stop, pause;
+    StreamThread(int port, int bufferSize, ReentrantLock stop, ReentrantLock pause,String tempName) {
 
         this.port = port;
-       
+this.tempName=tempName;
         this.bufferSize = bufferSize;
         this.stop = stop;
         this.pause = pause;
@@ -33,7 +32,7 @@ public class StreamThread implements Callable < ByteBuffer > {
         buff = ByteBuffer.allocate(bufferSize);
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
         while (!stop.isLocked()) {
-            RandomAccessFile temp = new RandomAccessFile("./temp.txt", "rw");
+            RandomAccessFile temp = new RandomAccessFile(tempName, "rw");
             SocketChannel socketChannel = serverSocketChannel.accept();
             socketChannel.read(buff);
             FileChannel channel = temp.getChannel();
@@ -43,6 +42,7 @@ public class StreamThread implements Callable < ByteBuffer > {
                 b.clear();
             }
             temp.close();
+            buff.clear();
         }
 
         return null;
