@@ -33,7 +33,7 @@ public class ScheduledStreamCache < T > {
     List < T > flush() {
         internal.clear();
         logger.logp(Level.INFO, "StreamCache", "flush()", "Flushed cache");
-        return output;
+        return internal;
     }
 
     void add(List < T > toAdd) {
@@ -55,7 +55,7 @@ public class ScheduledStreamCache < T > {
                         a--;
                         TimeUnit.MILLISECONDS.sleep(1);
                         if (a == 0) {
-                            Output.addAll(flush());
+                            output.addAll(flush());
                             a = tm;
                         }
                     }

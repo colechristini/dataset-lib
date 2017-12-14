@@ -16,6 +16,10 @@
     </dependency>
   </dependencies>
 
+ <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+  </properties>
 
 	<plugin>
 		<groupId>org.apache.maven.plugins</groupId>
