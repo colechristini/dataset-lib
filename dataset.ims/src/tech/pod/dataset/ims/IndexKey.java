@@ -4,8 +4,8 @@ import java.util.UUID;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-public class IndexKey extends Comparable {
-    Object[] list = new Object[9];
+public class IndexKey implements Comparable {
+    Object[] list = new Object[10];
 
     IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode,Date importTime) {
         list[0] = title;
@@ -14,19 +14,20 @@ public class IndexKey extends Comparable {
         list[2] = uuid;
         list[3] = fileAttributes;
         list[4] = hashCode;
-        list[5] = importTime;
-        list[6] = fileAttributes.lastAccessTime();
-        list[7] = 0;
-        list[8]=list[7]/list[6].getTime()-list[5].getTime();
+        list[5]=fileAttributes.creationTime();
+        list[6] = importTime;
+        list[7] = fileAttributes.lastAccessTime();
+        list[8] = 0;
+        list[9]=list[8]/list[7].getTime()-list[6].getTime();
     }
     @Override
     public int compareTo(IndexKey i) {
-        list[8]=list[7]/list[6].getTime()-list[5].getTime();
-        if ((int)list[8]>i.getAccessAverage()) {
+        list[9]=list[8]/list[7].getTime()-list[6].getTime();
+        if ((int)list[9]>i.getAccessAverage()) {
             return 1;
-        } else if ((int)list[8]<i.getAccessAverage()) {
+        } else if ((int)list[9]<i.getAccessAverage()) {
             return 0;
-        } else if ((int)list[8]==i.getAccessAverage()) {
+        } else if ((int)list[9]==i.getAccessAverage()) {
             return 2;
         }
     }
@@ -52,7 +53,7 @@ public class IndexKey extends Comparable {
         final DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         Date d = new Date();
-        list[6] = sdf.format(d);
+        list[7] = sdf.format(d);
         if (list[0] != i.getTitle() && list[4] != i.getHashCode() && list[2] != i.getUUID()) {
             return 0;
         } else if (list[0] == i.getTitle() && list[4] != i.getHashCode() && list[2] != i.getUUID()) {
@@ -66,18 +67,18 @@ public class IndexKey extends Comparable {
         }
     }
     void incrementCounter() {
-        list[7]++;
+        list[8]++;
     }
     public Date getLastAccessTime() {
-        return list[6];
+        return list[7];
     }
     public Date getCreationTime() {
-        return list[5];
+        return list[6];
     }
     public int getAccessAverage(){
-        return list[8];
+        return list[9];
     }
     public int update(){
-        list[8]=list[7]/list[6].getTime()-list[5].getTime();
+        list[9]=list[8]/list[7].getTime()-list[6].getTime();
     }
 }
