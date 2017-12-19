@@ -5,26 +5,28 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 public class IndexKey extends Comparable {
-    Object[] list = new Object[8];
+    Object[] list = new Object[9];
 
-    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode) {
+    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode,Date importTime) {
         list[0] = title;
         list[1] = tags;
         UUID uuid = UUID.randomUUID();
         list[2] = uuid;
         list[3] = fileAttributes;
         list[4] = hashCode;
-        list[5] = fileAttributes.creationTime();
+        list[5] = importTime;
         list[6] = fileAttributes.lastAccessTime();
         list[7] = 0;
+        list[8]=list[7]/list[6].getTime()-list[5].getTime();
     }
     @Override
     public int compareTo(IndexKey i) {
-        if (list[6].after(i.getLastAccessTime())) {
+        list[8]=list[7]/list[6].getTime()-list[5].getTime();
+        if ((int)list[8]>i.getAccessAverage()) {
             return 1;
-        } else if (list[6].before(i.getLastAccessTime())) {
+        } else if ((int)list[8]<i.getAccessAverage()) {
             return 0;
-        } else if (list[6].equals(i.getLastAccessTime())) {
+        } else if ((int)list[8]==i.getAccessAverage()) {
             return 2;
         }
     }
@@ -71,5 +73,11 @@ public class IndexKey extends Comparable {
     }
     public Date getCreationTime() {
         return list[5];
+    }
+    public int getAccessAverage(){
+        return list[8];
+    }
+    public int update(){
+        list[8]=list[7]/list[6].getTime()-list[5].getTime();
     }
 }
