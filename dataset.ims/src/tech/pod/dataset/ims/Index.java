@@ -11,13 +11,18 @@ public class Index implements Serializable, Callable {
     DataStore d;
     int cleanInterval;
     boolean b;
-    IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b) {
+    long maxIndexStorage;
+    int ListMemory;
+    IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage) {
         IndexKeyStore = new SortedList(millisTimeInterval);
         this.d = d;
         this.cleanInterval = cleanInterval;
         this.b = b;
+        this.maxIndexStorage = maxIndexStorage;
     }
-
+    public long calcMemory() {
+        return (long) 322 * IndexKeyStore.length;
+    }
     public int length() {
         return IndexKeyStore.length;
     }
@@ -40,7 +45,7 @@ public class Index implements Serializable, Callable {
         IndexKeyStore.add(i);
         d.add(i, s);
     }
-    public void start(){
+    public void start() {
         b = true;
         ExecutorService exec = Executors.newFixedThreadPool(threadPoolSize);
         Callable < Object > thread = new SortedList < Object > (millisTimeInterval);
@@ -48,8 +53,8 @@ public class Index implements Serializable, Callable {
         Future < Object > future = exec.submit(thread);
         Futures = future;
     }
-    public void stop(){
-        
+    public void stop() {
+
     }
     @Override
     public Object call() throws Exception {
@@ -57,30 +62,36 @@ public class Index implements Serializable, Callable {
         IndexKey ik;
         int checkCode;
         String newTitle;
+        long time;
         while (b) {
-            for (int a = 0; a < IndexKeyStore.length; a++) {
-                ik = IndexKeyStore.get(a);
-                for (int i = 0; i < IndexKeyStore.length; a++) {
-                    checkCode = ik.duplicateCheck(IndexKeyStore.get(a));
-                    if (checkCode == 1) {
-                        newTitle = IndexKeyStore.get(i).getTitle() + "1";
+            time++;
+            if (time == millisTimeInterval || calcMemory() == maxIndexStorage) {
+                for (int a = 0; a < IndexKeyStore.length; a++) {
+                    IndexKeyStore.get(a).setLocation(a);
+                    ik = IndexKeyStore.get(a);
+                    for (int i = 0; i < IndexKeyStore.length; a++) {
+                        checkCode = ik.duplicateCheck(IndexKeyStore.get(a));
+                        if (checkCode == 1) {
+                            newTitle = IndexKeyStore.get(i).getTitle() + "1";
 
-                        IndexKeyStore.get(i).setTitle(newTitle);
-                    } else if (checkCode == 2) {
+                            IndexKeyStore.get(i).setTitle(newTitle);
+                        } else if (checkCode == 2) {
 
-                        newTitle = IndexKeyStore.get(a).getTitle() + " or " + IndexKeyStore.get(i).getTitle();
+                            newTitle = IndexKeyStore.get(a).getTitle() + " or " + IndexKeyStore.get(i).getTitle();
 
 
-                        IndexKeyStore.get(a).setTitle(newTitle);
-                        IndexKeyStore.remove(i);
+                            IndexKeyStore.get(a).setTitle(newTitle);
+                            IndexKeyStore.remove(i);
 
-                    } else if (checkCode == 3) {
-                        IndexKeyStore.remove(i);
+                        } else if (checkCode == 3) {
+                            IndexKeyStore.remove(i);
 
+                        }
                     }
                 }
+                time = 0;
             }
-            Thread.sleep(millisTimeInterval);
+            Thread.sleep(1);
         }
         return null;
     }
