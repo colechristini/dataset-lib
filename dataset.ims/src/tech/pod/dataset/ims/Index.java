@@ -64,10 +64,11 @@ public class Index implements Serializable, Callable {
         String newTitle;
         long time;
         long tempTime;
+        long tempTime2;
         while (b) {
             time++;
             if (time == millisTimeInterval || calcMemory() == maxIndexStorage) {
-                tempTime=calcMemory();
+             here:   tempTime=calcMemory();
                 for (int a = 0; a < IndexKeyStore.length; a++) {
                     IndexKeyStore.get(a).setLocation(a);
                     ik = IndexKeyStore.get(a);
@@ -94,7 +95,11 @@ public class Index implements Serializable, Callable {
                 time = 0;
             }
             while(tempTime==calcMemory()){
+                tempTime2=calcMemory();
                 Thread.sleep(1);
+                if(tempTime!=tempTime2){
+                    break here;
+                }
             }
             Thread.sleep(1);
         }
