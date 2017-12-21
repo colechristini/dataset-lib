@@ -18,7 +18,7 @@ public class DataStore extends ConcurrentSkipListMap implements Serializable, Ca
     int[] size;
     int checkInterval;
     int[] storageTierCount;
-
+    
     DataStore(Index a, String[] storageTiering, int[] thresholds, int[] size, int checkInterval, String tempDirectory) {
         index = a;
         this.thresholds = thresholds;
