@@ -21,7 +21,7 @@ public class Index implements Serializable, Callable {
         this.maxIndexStorage = maxIndexStorage;
     }
     public long calcMemory() {
-        return (long) 322 * IndexKeyStore.length;
+        return (long) 358 * IndexKeyStore.length;
     }
     public int length() {
         return IndexKeyStore.length;
@@ -58,6 +58,7 @@ public class Index implements Serializable, Callable {
     }
     @Override
     public Object call() throws Exception {
+
         String oldTitle;
         IndexKey ik;
         int checkCode;
@@ -66,17 +67,19 @@ public class Index implements Serializable, Callable {
         long tempTime;
         long tempTime2;
         while (b) {
+
             time++;
             if (time == millisTimeInterval || calcMemory() == maxIndexStorage) {
-             here:   tempTime=calcMemory();
+                SortedList tempStore = IndexKeyStore;
+                tempStore.stop();
+                here: tempTime = calcMemory();
                 for (int a = 0; a < IndexKeyStore.length; a++) {
-                    IndexKeyStore.get(a).setLocation(a);
-                    ik = IndexKeyStore.get(a);
+                    tempStore.get(a).setLocation(a);
+                    ik = tempStore.get(a);
                     for (int i = 0; i < IndexKeyStore.length; a++) {
-                        checkCode = ik.duplicateCheck(IndexKeyStore.get(a));
+                        checkCode = ik.duplicateCheck(IndexKeyStore.get(i));
                         if (checkCode == 1) {
                             newTitle = IndexKeyStore.get(i).getTitle() + "1";
-
                             IndexKeyStore.get(i).setTitle(newTitle);
                         } else if (checkCode == 2) {
 
@@ -93,11 +96,13 @@ public class Index implements Serializable, Callable {
                     }
                 }
                 time = 0;
+                tempStore.start();
+                IndexKeyStore = tempStore;
             }
-            while(tempTime==calcMemory()){
-                tempTime2=calcMemory();
+            while (tempTime == calcMemory()) {
+                tempTime2 = calcMemory();
                 Thread.sleep(1);
-                if(tempTime!=tempTime2){
+                if (tempTime != tempTime2) {
                     break here;
                 }
             }

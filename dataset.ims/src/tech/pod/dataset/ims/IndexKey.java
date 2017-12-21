@@ -5,30 +5,31 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 public class IndexKey implements Comparable {
-    Object[] list = new Object[12];
+    Object[] list = new Object[13];
 
-    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode,Date importTime,int indexLoc) {
+    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode, Date importTime, int indexLoc,String filepath) {
         list[0] = title;
         list[1] = tags;
         UUID uuid = UUID.randomUUID();
         list[2] = uuid;
         list[3] = fileAttributes;
         list[4] = hashCode;
-        list[5]=fileAttributes.creationTime();
+        list[5] = fileAttributes.creationTime();
         list[6] = importTime;
         list[7] = fileAttributes.lastAccessTime();
         list[8] = 0;
-        list[9]=list[8]/list[7].getTime()-list[6].getTime();
-        list[11]=0;
+        list[9] = list[8] / list[7].getTime() - list[6].getTime();
+        list[11] = 0;
+        list[12]=filepath;
     }
     @Override
     public int compareTo(IndexKey i) {
-        list[9]=list[8]/list[7].getTime()-list[6].getTime();
-        if ((int)list[9]>i.getAccessAverage()) {
+        list[9] = list[8] / list[7].getTime() - list[6].getTime();
+        if ((int) list[9] > i.getAccessAverage()) {
             return 1;
-        } else if ((int)list[9]<i.getAccessAverage()) {
+        } else if ((int) list[9] < i.getAccessAverage()) {
             return 0;
-        } else if ((int)list[9]==i.getAccessAverage()) {
+        } else if ((int) list[9] == i.getAccessAverage()) {
             return 2;
         }
     }
@@ -69,7 +70,7 @@ public class IndexKey implements Comparable {
     }
     void incrementCounter() {
         list[8]++;
-        list[7]=new Date();
+        list[7] = new Date();
     }
     public Date getLastAccessTime() {
         return list[7];
@@ -77,26 +78,33 @@ public class IndexKey implements Comparable {
     public Date getCreationTime() {
         return list[6];
     }
-    public int getAccessAverage(){
+    public int getAccessAverage() {
         return list[9];
     }
-    public int update(){
-        list[9]=list[8]/list[7].getTime()-list[6].getTime();
+    public int update() {
+        list[9] = list[8] / list[7].getTime() - list[6].getTime();
     }
-    public int getLocation(){
+    public int getLocation() {
         return list[10];
     }
-    public void setLocation(int location){
-        list[10]=location;
-         
+   
+    public void setLocation(int location) {
+        list[10] = location;
+
     }
-    public void setLocationTier(int locationTier){
-        list[11]=locationTier;
+    public void setLocationTier(int locationTier) {
+        list[11] = locationTier;
     }
-    public int getLocationTier(){
+    public int getLocationTier() {
         return list[11];
     }
-    void setTitle(String title){
-        list[0]=title;
+   public void setTitle(String title) {
+        list[0] = title;
+    }
+    public String getPath(){
+        return list[12];
+    }
+    public void setPath(String path){
+        list[12]=path;
     }
 }
