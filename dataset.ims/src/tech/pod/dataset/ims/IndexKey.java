@@ -5,9 +5,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 public class IndexKey implements Comparable {
-    Object[] list = new Object[10];
+    Object[] list = new Object[12];
 
-    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode,Date importTime) {
+    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode,Date importTime,int indexLoc) {
         list[0] = title;
         list[1] = tags;
         UUID uuid = UUID.randomUUID();
@@ -19,6 +19,7 @@ public class IndexKey implements Comparable {
         list[7] = fileAttributes.lastAccessTime();
         list[8] = 0;
         list[9]=list[8]/list[7].getTime()-list[6].getTime();
+        list[11]=0;
     }
     @Override
     public int compareTo(IndexKey i) {
@@ -68,6 +69,7 @@ public class IndexKey implements Comparable {
     }
     void incrementCounter() {
         list[8]++;
+        list[7]=new Date();
     }
     public Date getLastAccessTime() {
         return list[7];
@@ -80,5 +82,21 @@ public class IndexKey implements Comparable {
     }
     public int update(){
         list[9]=list[8]/list[7].getTime()-list[6].getTime();
+    }
+    public int getLocation(){
+        return list[10];
+    }
+    public void setLocation(int location){
+        list[10]=location;
+         
+    }
+    public void setLocationTier(int locationTier){
+        list[11]=locationTier;
+    }
+    public int getLocationTier(){
+        return list[11];
+    }
+    void setTitle(String title){
+        list[0]=title;
     }
 }
