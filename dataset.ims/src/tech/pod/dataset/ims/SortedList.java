@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
+import com.sun.xml.internal.bind.v2.schemagen.xmlschema.List;
+
 public class SortedList < T > extends ArrayList implements Serializable, Callable {
     static final long serialVersionUID = SortedList.hashcode();
     long millisTimeInterval;
@@ -22,18 +24,20 @@ public class SortedList < T > extends ArrayList implements Serializable, Callabl
     }
     @Override
     public Object call() throws Exception {
-        SortedList<T> copy=this.clone();
+        List<T> copy=this.clone();
         while (b) {
-            Collections.sort(SortedList);
+            Collections.sort(copy);
+            super.SortedList=copy;
             Thread.sleep(millisTimeInterval);
         }
 
         return null;
     }
     @Override
-    public SortedList<T> clone(){
-        SortedList<T> clone=new SortedList<>(millisTimeInterval);
-        clone=
+    public List<T> clone(){
+        List<T> clone=new SortedList<>(millisTimeInterval);
+        clone=super.SortedList;
+        return clone;
     }
   public  void stop() {
         b = false;
