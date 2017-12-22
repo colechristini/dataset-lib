@@ -17,7 +17,7 @@
     <dependency>
 	<groupId>org.threadly</groupId>
 	<artifactId>threadly</artifactId>
-	<version>5.9.0</version>
+	<version>5.7.0</version>
 </dependency>
   </dependencies>
   <properties>
