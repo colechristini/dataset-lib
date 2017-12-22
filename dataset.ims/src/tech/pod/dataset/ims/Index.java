@@ -16,6 +16,7 @@ public class Index implements Serializable, Callable {
     int ListMemory;
     IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage) {
         IndexKeyStore = Collections.synchronizedList( SortedList(millisTimeInterval));
+        IndexKeyStore.start();
         this.d = d;
         this.cleanInterval = cleanInterval;
         this.b = b;
