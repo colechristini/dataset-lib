@@ -14,6 +14,11 @@
       <version>3.8.1</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+	<groupId>org.threadly</groupId>
+	<artifactId>threadly</artifactId>
+	<version>5.9.0</version>
+</dependency>
   </dependencies>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
