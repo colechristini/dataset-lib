@@ -2,6 +2,7 @@ package tech.pod.dataset.ims;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -14,7 +15,7 @@ public class Index implements Serializable, Callable {
     long maxIndexStorage;
     int ListMemory;
     IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage) {
-        IndexKeyStore = new SortedList(millisTimeInterval);
+        IndexKeyStore = Collections.synchronizedList( SortedList(millisTimeInterval));
         this.d = d;
         this.cleanInterval = cleanInterval;
         this.b = b;

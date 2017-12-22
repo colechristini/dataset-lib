@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutorService;
 
 import com.sun.xml.internal.bind.v2.schemagen.xmlschema.List;
 
-public class SortedList < T > extends ArrayList implements Serializable, Callable {
+public class SortedList < T > extends ArrayList implements Serializable, Callable, Cloneable {
     static final long serialVersionUID = SortedList.hashcode();
     long millisTimeInterval;
     boolean b;
@@ -24,8 +24,9 @@ public class SortedList < T > extends ArrayList implements Serializable, Callabl
     }
     @Override
     public Object call() throws Exception {
-        List<T> copy=this.clone();
+        List<?> copy;
         while (b) {
+            copy=(SortedList<?>) super.clone();
             Collections.sort(copy);
             super.SortedList=copy;
             Thread.sleep(millisTimeInterval);
