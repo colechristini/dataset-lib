@@ -1,5 +1,6 @@
 package tech.pod.dataset.ims;
 
+import org.threadly.concurrent.collections.ConcurrentArrayList;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.concurrent.Callable;
@@ -7,7 +8,7 @@ import java.util.concurrent.ExecutorService;
 
 import com.sun.xml.internal.bind.v2.schemagen.xmlschema.List;
 
-public class SortedList < T > extends ArrayList implements Serializable, Callable, Cloneable {
+public class SortedList < T > extends ConcurrentArrayList implements Serializable, Callable, Cloneable {
     static final long serialVersionUID = SortedList.hashcode();
     long millisTimeInterval;
     boolean b;
