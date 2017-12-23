@@ -6,7 +6,7 @@ public class RunAlg {
     RunAlg(String[] args) {
         this.args = args;
     }
-
+    
     void run() {
         Do.doAlg(args);
     }

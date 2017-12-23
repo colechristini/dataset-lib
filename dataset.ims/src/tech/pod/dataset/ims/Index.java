@@ -2,6 +2,7 @@ package tech.pod.dataset.ims;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -15,7 +16,7 @@ public class Index implements Serializable, Callable {
     long maxIndexStorage;
     int ListMemory;
     IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage) {
-        IndexKeyStore = Collections.synchronizedList( SortedList(millisTimeInterval));
+        IndexKeyStore = Collections.synchronizedList(SortedList(millisTimeInterval));
         IndexKeyStore.start();
         this.d = d;
         this.cleanInterval = cleanInterval;
@@ -55,8 +56,9 @@ public class Index implements Serializable, Callable {
         Future < Object > future = exec.submit(thread);
         Futures = future;
     }
+    @Override
     public void stop() {
-
+        b = false;
     }
     @Override
     public Object call() throws Exception {
@@ -80,36 +82,62 @@ public class Index implements Serializable, Callable {
                     ik = tempStore.get(a);
                     for (int i = 0; i < IndexKeyStore.length; a++) {
                         checkCode = ik.duplicateCheck(IndexKeyStore.get(i));
-                        if (checkCode == 1) {
-                            newTitle = IndexKeyStore.get(i).getTitle() + "1";
-                            IndexKeyStore.get(i).setTitle(newTitle);
-                        } else if (checkCode == 2) {
+                        switch (checkCode) {
+                            case 1:
+                                newTitle = IndexKeyStore.get(i).getTitle() + "1";
+                                IndexKeyStore.get(i).setTitle(newTitle);
+                                break;
+                            case 2:
 
-                            newTitle = IndexKeyStore.get(a).getTitle() + " or " + IndexKeyStore.get(i).getTitle();
+                                newTitle = IndexKeyStore.get(a).getTitle() + " or " + IndexKeyStore.get(i).getTitle();
 
 
-                            IndexKeyStore.get(a).setTitle(newTitle);
-                            IndexKeyStore.remove(i);
+                                IndexKeyStore.get(a).setTitle(newTitle);
+                                IndexKeyStore.remove(i);
+                                break;
 
-                        } else if (checkCode == 3) {
-                            IndexKeyStore.remove(i);
+                            case 3:
+                                IndexKeyStore.remove(i);
 
                         }
                     }
                 }
-                time = 0;
-                tempStore.start();
-                IndexKeyStore = tempStore;
             }
-            while (tempTime == calcMemory()) {
-                tempTime2 = calcMemory();
-                Thread.sleep(1);
-                if (tempTime != tempTime2) {
-                    break here;
-                }
-            }
-            Thread.sleep(1);
+            time = 0;
+            tempStore.start();
+            IndexKeyStore = tempStore;
         }
+        while (tempTime == calcMemory()) {
+            tempTime2 = calcMemory();
+            Thread.sleep(1);
+            if (tempTime != tempTime2) {
+                break here;
+            }
+        }
+        Thread.sleep(1);
+
         return null;
     }
+    public List < IndexKey > search(String[] query) {
+        final String[] querySet = query;
+        final List < ? extends IndexKey > tempList = IndexKeyStore;
+        List < IndexKey > returnList = new ArrayList < IndexKey > ();
+        Callable < List < IndexKey > > searchCall = () -> {
+            if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf(any) == -1) {
+                DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
+                Date date;
+                for (IndexKey i: tempList) {
+                    date = format.parse(querySet[Arrays.asList(querySet).indexOf("from:")].split(" ")[2]);
+                    if (i.getLastAccessTime().after(date)) {
+                        returnList.add(i);
+                    } else {
+                        continue;
+                    }
+                }
+            }
+        };
+        return returnList;
+    }
+
+
 }

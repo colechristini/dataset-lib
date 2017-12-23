@@ -8,7 +8,7 @@ public class StreamOutput < T > {
     ReentrantLock stopLock;
     BinaryStreamParser < T > b;
     List < T > output;
-
+@SafeVarargs
     StreamOutput(ReentrantLock pauseLock, ReentrantLock stopLock, BinaryStreamParser < T > b, List < T > ...output) {
         this.b = b;
         this.pauseLock = pauseLock;
