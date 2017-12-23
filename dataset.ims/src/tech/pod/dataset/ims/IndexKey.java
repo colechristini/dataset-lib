@@ -76,7 +76,7 @@ public class IndexKey implements Comparable {
         return list[7];
     }
     public Date getCreationTime() {
-        return list[6];
+        return list[5];
     }
     public int getAccessAverage() {
         return list[9];
@@ -106,5 +106,9 @@ public class IndexKey implements Comparable {
     }
     public void setPath(String path){
         list[12]=path;
+    }
+
+    public Date getImportTime(){
+        return list[7];
     }
 }

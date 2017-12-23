@@ -124,35 +124,91 @@ public class Index implements Serializable, Callable {
         List < IndexKey > returnList = new ArrayList < IndexKey > ();
         Callable < List < IndexKey > > searchCall = () -> {
             if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf("any") == -1) {
+                String[] timeQuery=list[Arrays.asList(querySet).indexOf("to:")].split(":");
+                timeQuery=timeQuery[1].split(",");
+                Date[] date=new Date[timeQuery.length];
                 DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
-                Date date=format.parse(querySet[Arrays.asList(querySet).indexOf("from")].split(":")[1]);
-                for (IndexKey i: tempList) {
-                    date = format.parse(querySet[Arrays.asList(querySet).indexOf("from:")].split(" ")[2]);
-                    if (i.getLastAccessTime().after(date)) {
-                        returnList.add(i);
+                for(int i=0;i<timeQuery.length;i++){
+                    date[i]=format.parse(timeQuery[i].split("-")[1]);
+                }
+                if(Arrays.asList(timeQuery).indexOf("AccessTime")!=-1)
+                {for (int i=0;i<returnList.length;i++) {
+                  
+                    if (tempList.get(i).getLastAccessTime().before(date[Arrays.asList(timeQuery).indexOf("AccessTime")])) {
+                        returnList.add(tempList.get(i));
                     } else {
                         continue;
                     }
+                }}
+                if(Arrays.asList(timeQuery).indexOf("ImportTime")!=-1)
+                {for (int i=0;i<returnList.length;i++) {
+                    
+                    if (tempList.get(i).getImportTime().before(date[Arrays.asList(timeQuery).indexOf("ImportTime")])) {
+                        returnList.add(tempList.get(i));
+                    } else {
+                        continue;
+                    }
+                    
                 }
             }
-            else if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf("any") == -1) {
+            if(Arrays.asList(timeQuery).indexOf("CreationTime")!=-1)
+            {for (int i=0;i<returnList.length;i++) {
+                
+                if (tempList.get(i).getImportTime().before(date[Arrays.asList(timeQuery).indexOf("CreationTime")])) {
+                    returnList.add(tempList.get(i));
+                } else {
+                    continue;
+                }
+                
+            }
+        }
+            }
+            else if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf("any") != -1) {
                 returnList=tempList;
             }
             if (Arrays.asList(querySet).indexOf("to:") != -1 && querySet[Arrays.asList(querySet).indexOf("to:")].indexOf("any") == -1) {
+                String[] timeQuery=list[Arrays.asList(querySet).indexOf("to:")].split(":");
+                timeQuery=timeQuery[1].split(",");
+                Date[] date=new Date[timeQuery.length];
                 DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
-                Date date=format.parse(querySet[Arrays.asList(querySet).indexOf("to")].split(":")[1]);;
-                for (IndexKey i: returnList) {
-                    date = format.parse(querySet[Arrays.asList(querySet).indexOf("from:")].split(" ")[2]);
-                    if (i.getLastAccessTime().before(date)) {
-                        returnList.add(i);
+                for(int i=0;i<timeQuery.length;i++){
+                    date[i]=format.parse(timeQuery[i].split("-")[1]);
+                }
+                if(Arrays.asList(timeQuery).indexOf("AccessTime")!=-1)
+                {for (int i=0;i<returnList.length;i++) {
+                  
+                    if (tempList.get(i).getLastAccessTime().before(date[Arrays.asList(timeQuery).indexOf("AccessTime")])) {
+                        returnList.add(tempList.get(i));
                     } else {
                         continue;
                     }
+                }}
+                if(Arrays.asList(timeQuery).indexOf("ImportTime")!=-1)
+                {for (int i=0;i<returnList.length;i++) {
+                    
+                    if (tempList.get(i).getImportTime().before(date[Arrays.asList(timeQuery).indexOf("ImportTime")])) {
+                        returnList.add(tempList.get(i));
+                    } else {
+                        continue;
+                    }
+                    
                 }
             }
-        };
-        return returnList;
+            if(Arrays.asList(timeQuery).indexOf("CreationTime")!=-1)
+            {for (int i=0;i<returnList.length;i++) {
+                
+                if (tempList.get(i).getImportTime().before(date[Arrays.asList(timeQuery).indexOf("CreationTime")])) {
+                    returnList.add(tempList.get(i));
+                } else {
+                    continue;
+                }
+                
+            }
+        } 
     }
+        
+        return returnList;
+    };
 
 
-}
+}}

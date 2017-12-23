@@ -19,9 +19,7 @@ public class SortedList < T > extends ConcurrentArrayList implements Serializabl
         b = true;
         ExecutorService exec = Executors.newFixedThreadPool(1);
         Callable < Object > thread = new SortedList < Object > (millisTimeInterval);
-        Future < Object > Futures = new Future < Object > ();
         Future < Object > future = exec.submit(thread);
-        Futures = future;
     }
     @Override
     public Object call() throws Exception {
