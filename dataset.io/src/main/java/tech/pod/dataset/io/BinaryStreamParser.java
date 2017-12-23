@@ -46,6 +46,7 @@ public class BinaryStreamParser < T > {
                     b = channel.map(MapMode.READ_WRITE, 0, bufferLength);
                     if (type == "string") {
                         CharBuffer charBuffer = b.asCharBuffer();
+                        sync=2;
                         char[] array = charBuffer.array();
                         String str2 = array.toString();
                         String[] strs = str2.split("//");
@@ -60,6 +61,7 @@ public class BinaryStreamParser < T > {
                     }
                     if (type == "num") {
                         DoubleBuffer doubleBuffer = b.asDoubleBuffer();
+                        sync=2;
                         double[] array = doubleBuffer.array();
                         for (double i: array) {
                             T a = caster.cast(i);
@@ -72,7 +74,7 @@ public class BinaryStreamParser < T > {
                         b.clear();
                         
                     }
-                    sync=2;
+                    
                 }
             
 
