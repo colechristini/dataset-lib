@@ -13,9 +13,11 @@ public class BinaryStreamParser < T > {
     ReentrantLock pauseLock;
     ReentrantLock stopLock;
     String globalLogger;
-    BinaryStreamParser(ReentrantLock pauseLock, ReentrantLock stopLock, String...globalLogger) {
+    int sync;
+    BinaryStreamParser(ReentrantLock pauseLock, ReentrantLock stopLock,int sync, String...globalLogger) {
         this.pauseLock = pauseLock;
         this.stopLock = stopLock;
+        this.sync=sync;
         if (globalLogger.length != 0) {
             this.globalLogger = globalLogger[0];
         }
@@ -35,13 +37,13 @@ public class BinaryStreamParser < T > {
         MappedByteBuffer b;
         try {
             channel = FileChannel.open(f.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-            b = channel.map(MapMode.READ_WRITE, 0, bufferLength);
+            
             while (!stopLock.isLocked()) {
 
 
-            
 
                 if (!pauseLock.isLocked()) {
+                    b = channel.map(MapMode.READ_WRITE, 0, bufferLength);
                     if (type == "string") {
                         CharBuffer charBuffer = b.asCharBuffer();
                         char[] array = charBuffer.array();
@@ -54,7 +56,7 @@ public class BinaryStreamParser < T > {
                             //return output;
                         }
                         output.clear();
-                       // b.clear();
+                       b.clear();
                     }
                     if (type == "num") {
                         DoubleBuffer doubleBuffer = b.asDoubleBuffer();
@@ -67,8 +69,10 @@ public class BinaryStreamParser < T > {
 
                         }
                         output.clear();
-                       // b.clear;
+                        b.clear();
+                        
                     }
+                    sync=2;
                 }
             
 

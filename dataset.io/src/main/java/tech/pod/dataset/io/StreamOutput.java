@@ -8,11 +8,13 @@ public class StreamOutput < T > {
     ReentrantLock stopLock;
     BinaryStreamParser < T > b;
     List < T > output;
+    int sync;
 @SafeVarargs
-    StreamOutput(ReentrantLock pauseLock, ReentrantLock stopLock, BinaryStreamParser < T > b, List < T > ...output) {
+    StreamOutput(ReentrantLock pauseLock, ReentrantLock stopLock, BinaryStreamParser < T > b,int sync, List < T > ...output) {
         this.b = b;
         this.pauseLock = pauseLock;
         this.stopLock = stopLock;
+        this.sync=sync;
         if (output.length != 0) {
             this.output = output[0];
         }

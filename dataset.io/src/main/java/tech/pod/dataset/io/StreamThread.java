@@ -17,11 +17,13 @@ public class StreamThread implements Callable < ByteBuffer > {
     int port;
     String tempName;
     int bufferSize;
-    ReentrantLock stop, pause;
-    StreamThread(int port, int bufferSize, ReentrantLock stop, ReentrantLock pause,String tempName) {
-
+    ReentrantLock stop,
+    pause;
+    int sync;
+    StreamThread(int port, int bufferSize, ReentrantLock stop, ReentrantLock pause, String tempName, int sync) {
+        this.sync = sync;
         this.port = port;
-this.tempName=tempName;
+        this.tempName = tempName;
         this.bufferSize = bufferSize;
         this.stop = stop;
         this.pause = pause;
@@ -32,17 +34,20 @@ this.tempName=tempName;
         buff = ByteBuffer.allocate(bufferSize);
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
         RandomAccessFile temp = new RandomAccessFile(tempName, "rw");
+        MappedByteBuffer b;
         while (!stop.isLocked()) {
-           
-            SocketChannel socketChannel  = serverSocketChannel.accept();
+            sync=0;
+            SocketChannel socketChannel = serverSocketChannel.accept();
             socketChannel.read(buff);
             FileChannel channel = temp.getChannel();
             channel.write(buff);
             if (!pause.isLocked()) {
-                MappedByteBuffer b = channel.map(MapMode.READ_WRITE, 0, (long) bufferSize);
+                b = channel.map(MapMode.READ_WRITE, 0, (long) bufferSize);
+                sync = 1;
+                if(sync==2){
                 b.clear();
+                }
             }
-            
             buff.clear();
         }
         temp.close();
