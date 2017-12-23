@@ -1,6 +1,7 @@
 package tech.pod.dataset.ims;
 
 import java.io.Serializable;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,9 +53,8 @@ public class Index implements Serializable, Callable {
         b = true;
         ExecutorService exec = Executors.newFixedThreadPool(threadPoolSize);
         Callable < Object > thread = new SortedList < Object > (millisTimeInterval);
-        Future < Object > Futures = new Future < Object > ();
         Future < Object > future = exec.submit(thread);
-        Futures = future;
+
     }
     @Override
     public void stop() {
@@ -123,12 +123,27 @@ public class Index implements Serializable, Callable {
         final List < ? extends IndexKey > tempList = IndexKeyStore;
         List < IndexKey > returnList = new ArrayList < IndexKey > ();
         Callable < List < IndexKey > > searchCall = () -> {
-            if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf(any) == -1) {
+            if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf("any") == -1) {
                 DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
-                Date date;
+                Date date=format.parse(querySet[Arrays.asList(querySet).indexOf("from")].split(":")[1]);
                 for (IndexKey i: tempList) {
                     date = format.parse(querySet[Arrays.asList(querySet).indexOf("from:")].split(" ")[2]);
                     if (i.getLastAccessTime().after(date)) {
+                        returnList.add(i);
+                    } else {
+                        continue;
+                    }
+                }
+            }
+            else if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf("any") == -1) {
+                returnList=tempList;
+            }
+            if (Arrays.asList(querySet).indexOf("to:") != -1 && querySet[Arrays.asList(querySet).indexOf("to:")].indexOf("any") == -1) {
+                DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
+                Date date=format.parse(querySet[Arrays.asList(querySet).indexOf("to")].split(":")[1]);;
+                for (IndexKey i: returnList) {
+                    date = format.parse(querySet[Arrays.asList(querySet).indexOf("from:")].split(" ")[2]);
+                    if (i.getLastAccessTime().before(date)) {
                         returnList.add(i);
                     } else {
                         continue;
