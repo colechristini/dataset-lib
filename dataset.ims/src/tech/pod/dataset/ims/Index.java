@@ -125,7 +125,7 @@ public class Index implements Serializable, Callable {
         Callable < List < IndexKey > > searchCall = () -> {
             if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf("any") == -1) {
                 String[] timeQuery=list[Arrays.asList(querySet).indexOf("to:")].split(":");
-                timeQuery=timeQuery[1].split(",");
+                timeQuery=timeQuery[1].split("&");
                 Date[] date=new Date[timeQuery.length];
                 DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
                 for(int i=0;i<timeQuery.length;i++){
@@ -168,7 +168,8 @@ public class Index implements Serializable, Callable {
             }
             if (Arrays.asList(querySet).indexOf("to:") != -1 && querySet[Arrays.asList(querySet).indexOf("to:")].indexOf("any") == -1) {
                 String[] timeQuery=list[Arrays.asList(querySet).indexOf("to:")].split(":");
-                timeQuery=timeQuery[1].split(",");
+                
+                timeQuery=timeQuery[1].split("&");
                 Date[] date=new Date[timeQuery.length];
                 DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
                 for(int i=0;i<timeQuery.length;i++){
