@@ -1,6 +1,10 @@
 package tech.pod.dataset.ims;
 
 import org.threadly.concurrent.collections.ConcurrentArrayList;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.concurrent.Callable;
@@ -42,4 +46,29 @@ public class SortedList < T > extends ConcurrentArrayList implements Serializabl
   public  void stop() {
         b = false;
     }
+    public void backup(String name,String path){
+        try {
+            SortedList<T> sortedList=this;
+            FileOutputStream fs=new FileOutputStream(path+"/"+name+".ser");
+            ObjectOutputStream out=new ObjectOutputStream(fs);
+            out.writeObject(sortedList);
+            out.close();
+            fs.close(); 
+        } catch (IOException e) {
+            //TODO: handle exception
+        }
+      
+    }
+    public void restore(String name,String path,SortedList s){
+        try {
+            SortedList<T> sortedList=null;
+            FileInputStream fs=new FileInputStream(path+"/"+name+".ser");
+            ObjectInputStream in=new ObjectInputStream(fs);
+            sortedList=in.readObject();
+            s=sortedList;
+        } catch (IOException e) {
+            //TODO: handle exception
+        }
+    }
 }
+

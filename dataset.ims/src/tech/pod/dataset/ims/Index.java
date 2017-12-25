@@ -7,6 +7,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.io.ObjectOutputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.FileInputStream;
 
 public class Index implements Serializable, Callable {
     private static final long serialVersionUID = DataStore.hashcode();
@@ -212,4 +216,29 @@ public class Index implements Serializable, Callable {
     };
 
 
-}}
+}
+public void backup(String name,String path){
+    try {
+        Index index=this;
+        FileOutputStream fs=new FileOutputStream(path+"/"+name+".ser");
+        ObjectOutputStream out=new ObjectOutputStream(fs);
+        out.writeObject(index);
+        out.close();
+        fs.close(); 
+    } catch (IOException e) {
+        //TODO: handle exception
+    }
+  
+}
+public void restore(String name,String path,Index i){
+    try {
+        Index index=null;
+        FileInputStream fs=new FileInputStream(path+"/"+name+".ser");
+        ObjectInputStream in=new ObjectInputStream(fs);
+        index=in.readObject();
+        i=index;
+    } catch (IOException e) {
+        //TODO: handle exception
+    }
+}
+}
