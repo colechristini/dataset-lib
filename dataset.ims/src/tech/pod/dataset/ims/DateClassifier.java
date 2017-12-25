@@ -16,10 +16,10 @@ public class DateClassifier {
     }
 
     public List < T > classify() {
-        int syncheck=0;
-        final List < IndexKey> temp=classifierOutput;
+        int syncheck = 0;
+        final List < IndexKey > temp = classifierOutput;
         Callable < List < IndexKey > > classifierCall = () -> {
-            List < IndexKey> innerTemp=temp;
+            List < IndexKey > innerTemp = temp;
             if (mode == "after") {
                 if (date == "lastAccess") {
                     for (int i = 0; i < classifierOutput.length; i++) {
@@ -40,8 +40,7 @@ public class DateClassifier {
                         }
                     }
                 }
-            }
-           else if (mode == "before") {
+            } else if (mode == "before") {
                 if (date == "lastAccess") {
                     for (int i = 0; i < classifierOutput.length; i++) {
                         if (!innerTemp.get(i).getLastAccessTime().before(check)) {
@@ -61,15 +60,15 @@ public class DateClassifier {
                         }
                     }
                 }
-                
+
             }
             syncheck++;
             return innerTemp;
         };
-        ExecutorService service =  Executors.newSingleThreadExecutor();
-		Future<List<IndexKey>> future = service.submit(classifierCall);
-        if(syncheck==1){
-            classifierOutput=future.get();
+        ExecutorService service = Executors.newSingleThreadExecutor();
+        Future < List < IndexKey >> future = service.submit(classifierCall);
+        if (syncheck == 1) {
+            classifierOutput = future.get();
             return classifierOutput;
         }
     }
