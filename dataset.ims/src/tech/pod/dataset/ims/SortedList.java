@@ -25,7 +25,7 @@ public class SortedList < T > extends ConcurrentArrayList implements Serializabl
     public Object call() throws Exception {
         List<?> copy;
         while (b) {
-            copy=(SortedList<?>) super.clone();
+            copy=(SortedList<?>) this;
             Collections.sort(copy);
             super.SortedList=copy;
             Thread.sleep(millisTimeInterval);
