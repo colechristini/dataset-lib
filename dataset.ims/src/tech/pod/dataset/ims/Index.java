@@ -7,6 +7,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+
+import com.sun.jndi.url.iiopname.iiopnameURLContextFactory;
+
 import java.io.ObjectOutputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
@@ -122,8 +128,26 @@ public class Index implements Serializable, Callable {
 
         return null;
     }
-    public List < IndexKey > search(String[] query) {
-        final String[] querySet = query;
+    public List < IndexKey > search(String queryInput) {
+        final String query=queryInput;
+        Callable<List < List <List< String >>>> c=()->
+        {String[] queries = query.split("|");
+        List < List < String >> querygroup = new ArrayList < ArrayList < String >> ();
+        for(int i=0;i<queries.length;i++){
+            querygroup.get(i).addAll(Arrays.asList(queries[i].split(";")));
+        } List < List <List< String >>> queryset = new ArrayList<ArrayList<ArrayList<String>>>();
+        for(int i=0;i<queryset.length;i++){
+            for(int j=0;j<queryset.get(i).length;j++){
+                queryset.get(i).get(j).addAll(Arrays.asList(Arrays.asList(querygroup.get(i).get(j).split(":")).get(1).split(",")));
+            }
+        }
+    };
+    ExecutorService service=Executors.newSingleThreadExecutor();
+    ScheduledFuture<List < List <List< String >>>> scheduledFuture=service.submit(c);
+    if(scheduledFuture.isDone()){
+        final List < List <List < String >>> queryBlock=scheduledFuture.get();
+    }
+        /* final String[] querySet = query;
         final List < ? extends IndexKey > tempList = IndexKeyStore;
         List < IndexKey > returnList = new ArrayList < IndexKey > ();
         Callable < List < IndexKey > > searchCall = () -> {
@@ -215,30 +239,30 @@ public class Index implements Serializable, Callable {
         return returnList;
     };
 
+*/
+    }
+    public void backup(String name, String path) {
+        try {
+            Index index = this;
+            FileOutputStream fs = new FileOutputStream(path + "/" + name + ".ser");
+            ObjectOutputStream out = new ObjectOutputStream(fs);
+            out.writeObject(index);
+            out.close();
+            fs.close();
+        } catch (IOException e) {
+            //TODO: handle exception
+        }
 
-}
-public void backup(String name,String path){
-    try {
-        Index index=this;
-        FileOutputStream fs=new FileOutputStream(path+"/"+name+".ser");
-        ObjectOutputStream out=new ObjectOutputStream(fs);
-        out.writeObject(index);
-        out.close();
-        fs.close(); 
-    } catch (IOException e) {
-        //TODO: handle exception
     }
-  
-}
-public void restore(String name,String path,Index i){
-    try {
-        Index index=null;
-        FileInputStream fs=new FileInputStream(path+"/"+name+".ser");
-        ObjectInputStream in=new ObjectInputStream(fs);
-        index=in.readObject();
-        i=index;
-    } catch (IOException e) {
-        //TODO: handle exception
+    public void restore(String name, String path, Index i) {
+        try {
+            Index index = null;
+            FileInputStream fs = new FileInputStream(path + "/" + name + ".ser");
+            ObjectInputStream in = new ObjectInputStream(fs);
+            index = in .readObject();
+            i = index;
+        } catch (IOException e) {
+            //TODO: handle exception
+        }
     }
-}
 }

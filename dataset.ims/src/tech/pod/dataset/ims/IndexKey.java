@@ -1,13 +1,13 @@
 package tech.pod.dataset.ims;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 public class IndexKey implements Comparable {
-    Object[] list = new Object[13];
-
-    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode, Date importTime, int indexLoc,String filepath) {
+    Object[] list = new Object[14];
+    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode, Date importTime, int indexLoc,String filepath,ConcurrentHashMap wordOccurences) {
         list[0] = title;
         list[1] = tags;
         UUID uuid = UUID.randomUUID();
@@ -18,9 +18,10 @@ public class IndexKey implements Comparable {
         list[6] = importTime;
         list[7] = fileAttributes.lastAccessTime();
         list[8] = 0;
-        list[9] = list[8] / list[7].getTime() - list[6].getTime();
+        list[9] = list[8] / (list[7].getTime() - list[6].getTime());
         list[11] = 0;
         list[12]=filepath;
+        list[13]=wordOccurences;
     }
     @Override
     public int compareTo(IndexKey i) {
@@ -53,7 +54,7 @@ public class IndexKey implements Comparable {
     }
     public int duplicateCheck(IndexKey i) {
         final DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+       // final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         Date d = new Date();
         list[7] = sdf.format(d);
         if (list[0] != i.getTitle() && list[4] != i.getHashCode() && list[2] != i.getUUID()) {
@@ -67,6 +68,7 @@ public class IndexKey implements Comparable {
         } else if (list[0] == i.getTitle() && list[4] == i.getHashCode() && list[2] == i.getUUID()) {
             return 4;
         }
+        return 5;
     }
     void incrementCounter() {
         list[8]++;
@@ -110,5 +112,9 @@ public class IndexKey implements Comparable {
 
     public Date getImportTime(){
         return list[7];
+    }
+
+    public ConcurrentHashMap wordOccurences(){
+        return list[13];
     }
 }

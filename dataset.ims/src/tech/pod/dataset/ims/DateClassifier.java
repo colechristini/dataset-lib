@@ -3,7 +3,7 @@ package tech.pod.dataset.ims;
 import java.util.List;
 import java.util.concurrent.Future;
 
-public class DateClassifier {
+public class DateClassifier implements ClassifierRule<IndexKey>{
     List < IndexKey > classifierOutput;
     String mode;
     Date check;
@@ -15,61 +15,55 @@ public class DateClassifier {
         this.date = date;
     }
 
-    public List < T > classify() {
-        int syncheck = 0;
-        final List < IndexKey > temp = classifierOutput;
-        Callable < List < IndexKey > > classifierCall = () -> {
-            List < IndexKey > innerTemp = temp;
+    public List < IndexKey > classify() {
+        
+       
+        
+         
             if (mode == "after") {
                 if (date == "lastAccess") {
                     for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!innerTemp.get(i).getLastAccessTime().after(check)) {
-                            innerTemp.remove(i);
+                        if (!classifierOutput.get(i).getLastAccessTime().after(check)) {
+                            classifierOutput.remove(i);
                         }
                     }
                 } else if (date == "import") {
                     for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!innerTemp.get(i).getImportTime().after(check)) {
-                            innerTemp.remove(i);
+                        if (!classifierOutput.get(i).getImportTime().after(check)) {
+                            classifierOutput.remove(i);
                         }
                     }
                 } else if (date == "creation") {
                     for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!innerTemp.get(i).getCreationTime().after(check)) {
-                            innerTemp.remove(i);
+                        if (!classifierOutput.get(i).getCreationTime().after(check)) {
+                            classifierOutput.remove(i);
                         }
                     }
                 }
             } else if (mode == "before") {
                 if (date == "lastAccess") {
                     for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!innerTemp.get(i).getLastAccessTime().before(check)) {
-                            innerTemp.remove(i);
+                        if (!classifierOutput.get(i).getLastAccessTime().before(check)) {
+                            classifierOutput.remove(i);
                         }
                     }
                 } else if (date == "import") {
                     for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!innerTemp.get(i).getImportTime().before(check)) {
-                            innerTemp.remove(i);
+                        if (!classifierOutput.get(i).getImportTime().before(check)) {
+                            classifierOutput.remove(i);
                         }
                     }
                 } else if (date == "creation") {
                     for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!innerTemp.get(i).getCreationTime().before(check)) {
-                            innerTemp.remove(i);
+                        if (!classifierOutput.get(i).getCreationTime().before(check)) {
+                            classifierOutput.remove(i);
                         }
                     }
                 }
 
             }
-            syncheck++;
-            return innerTemp;
-        };
-        ExecutorService service = Executors.newSingleThreadExecutor();
-        Future < List < IndexKey >> future = service.submit(classifierCall);
-        if (syncheck == 1) {
-            classifierOutput = future.get();
             return classifierOutput;
-        }
+        
+        
     }
 }

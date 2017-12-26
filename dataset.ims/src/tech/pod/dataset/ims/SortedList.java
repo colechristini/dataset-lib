@@ -29,7 +29,7 @@ public class SortedList < T > extends ConcurrentArrayList implements Serializabl
     public Object call() throws Exception {
         List<?> copy;
         while (b) {
-            copy=(SortedList<?>) this;
+            copy=(SortedList<?>) SortedList.this;
             Collections.sort(copy);
             super.SortedList=copy;
             Thread.sleep(millisTimeInterval);
@@ -37,12 +37,12 @@ public class SortedList < T > extends ConcurrentArrayList implements Serializabl
 
         return null;
     }
-    @Override
+   /* @Override
     public List<T> clone(){
         List<T> clone=new SortedList<>(millisTimeInterval);
         clone=super.SortedList;
         return clone;
-    }
+    }*/
   public  void stop() {
         b = false;
     }
