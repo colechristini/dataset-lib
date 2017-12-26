@@ -6,8 +6,7 @@ import java.util.regex.Pattern;
 
 public class StringClassifier < IndexKey > implements ClassifierRule < IndexKey > {
     List < IndexKey > classifierOutput;
-    String regex,
-    mode;
+    String regex,mode;
     public StringClassifier(String regex, String mode, List < IndexKey > classifierInput) {
         this.regex = regex;
         this.mode = mode;

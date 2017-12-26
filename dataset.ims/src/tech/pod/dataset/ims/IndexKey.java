@@ -5,9 +5,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 public class IndexKey implements Comparable {
     Object[] list = new Object[14];
-    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode, Date importTime, int indexLoc,String filepath,ConcurrentHashMap wordOccurences) {
+    IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode, Date importTime, int indexLoc,String filepath,HashMap wordOccurences) {
         list[0] = title;
         list[1] = tags;
         UUID uuid = UUID.randomUUID();
@@ -114,7 +115,7 @@ public class IndexKey implements Comparable {
         return list[7];
     }
 
-    public ConcurrentHashMap wordOccurences(){
+    public HashMap wordOccurences(){
         return list[13];
     }
 }

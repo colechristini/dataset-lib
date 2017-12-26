@@ -35,7 +35,7 @@ public class Index implements Serializable, Callable {
         this.maxIndexStorage = maxIndexStorage;
     }
     public long calcMemory() {
-        return (long) 358 * IndexKeyStore.length;
+        return (long) 422 * IndexKeyStore.length;
     }
     public int length() {
         return IndexKeyStore.length;
@@ -128,118 +128,34 @@ public class Index implements Serializable, Callable {
 
         return null;
     }
-    public List < IndexKey > search(String queryInput) {
-        final String query=queryInput;
-        Callable<List < List <List< String >>>> c=()->
-        {String[] queries = query.split("|");
-        List < List < String >> querygroup = new ArrayList < ArrayList < String >> ();
-        for(int i=0;i<queries.length;i++){
-            querygroup.get(i).addAll(Arrays.asList(queries[i].split(";")));
-        } List < List <List< String >>> queryset = new ArrayList<ArrayList<ArrayList<String>>>();
-        for(int i=0;i<queryset.length;i++){
-            for(int j=0;j<queryset.get(i).length;j++){
-                queryset.get(i).get(j).addAll(Arrays.asList(Arrays.asList(querygroup.get(i).get(j).split(":")).get(1).split(",")));
+    public List < IndexKey > searchOutput(String queryInput) {
+        final String query = queryInput;
+        List < IndexKey > output = new ArrayList < IndexKey > ();
+        Callable < List < List < List < String >>> > c = () -> {
+            String[] queries = query.split("|");
+            List < List < String >> querygroup = new ArrayList < ArrayList < String >> ();
+            for (int i = 0; i < queries.length; i++) {
+                querygroup.get(i).addAll(Arrays.asList(queries[i].split(";")));
             }
-        }
-    };
-    ExecutorService service=Executors.newSingleThreadExecutor();
-    ScheduledFuture<List < List <List< String >>>> scheduledFuture=service.submit(c);
-    if(scheduledFuture.isDone()){
-        final List < List <List < String >>> queryBlock=scheduledFuture.get();
-    }
-        /* final String[] querySet = query;
-        final List < ? extends IndexKey > tempList = IndexKeyStore;
-        List < IndexKey > returnList = new ArrayList < IndexKey > ();
-        Callable < List < IndexKey > > searchCall = () -> {
-            if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf("any") == -1) {
-                String[] timeQuery=list[Arrays.asList(querySet).indexOf("to:")].split(":");
-                timeQuery=timeQuery[1].split("&");
-                Date[] date=new Date[timeQuery.length];
-                DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
-                for(int i=0;i<timeQuery.length;i++){
-                    date[i]=format.parse(timeQuery[i].split("-")[1]);
-                }
-                if(Arrays.asList(timeQuery).indexOf("AccessTime")!=-1)
-                {for (int i=0;i<returnList.length;i++) {
-                  
-                    if (tempList.get(i).getLastAccessTime().before(date[Arrays.asList(timeQuery).indexOf("AccessTime")])) {
-                        returnList.add(tempList.get(i));
-                    } else {
-                        continue;
-                    }
-                }}
-                if(Arrays.asList(timeQuery).indexOf("ImportTime")!=-1)
-                {for (int i=0;i<returnList.length;i++) {
-                    
-                    if (tempList.get(i).getImportTime().before(date[Arrays.asList(timeQuery).indexOf("ImportTime")])) {
-                        returnList.add(tempList.get(i));
-                    } else {
-                        continue;
-                    }
-                    
+            List < List < List < String >>> queryset = new ArrayList < ArrayList < ArrayList < String >>> ();
+            for (int i = 0; i < queryset.length; i++) {
+                for (int j = 0; j < queryset.get(i).length; j++) {
+                    queryset.get(i).get(j).addAll(Arrays.asList(Arrays.asList(querygroup.get(i).get(j).split(":")).get(1).split(",")));
                 }
             }
-            if(Arrays.asList(timeQuery).indexOf("CreationTime")!=-1)
-            {for (int i=0;i<returnList.length;i++) {
-                
-                if (tempList.get(i).getImportTime().before(date[Arrays.asList(timeQuery).indexOf("CreationTime")])) {
-                    returnList.add(tempList.get(i));
-                } else {
-                    continue;
-                }
-                
-            }
-        }
-            }
-            else if (Arrays.asList(querySet).indexOf("from:") != -1 && querySet[Arrays.asList(querySet).indexOf("from:")].indexOf("any") != -1) {
-                returnList=tempList;
-            }
-            if (Arrays.asList(querySet).indexOf("to:") != -1 && querySet[Arrays.asList(querySet).indexOf("to:")].indexOf("any") == -1) {
-                String[] timeQuery=list[Arrays.asList(querySet).indexOf("to:")].split(":");
-                
-                timeQuery=timeQuery[1].split("&");
-                Date[] date=new Date[timeQuery.length];
-                DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
-                for(int i=0;i<timeQuery.length;i++){
-                    date[i]=format.parse(timeQuery[i].split("-")[1]);
-                }
-                if(Arrays.asList(timeQuery).indexOf("AccessTime")!=-1)
-                {for (int i=0;i<returnList.length;i++) {
-                  
-                    if (tempList.get(i).getLastAccessTime().before(date[Arrays.asList(timeQuery).indexOf("AccessTime")])) {
-                        returnList.add(tempList.get(i));
-                    } else {
-                        continue;
-                    }
-                }}
-                if(Arrays.asList(timeQuery).indexOf("ImportTime")!=-1)
-                {for (int i=0;i<returnList.length;i++) {
-                    
-                    if (tempList.get(i).getImportTime().before(date[Arrays.asList(timeQuery).indexOf("ImportTime")])) {
-                        returnList.add(tempList.get(i));
-                    } else {
-                        continue;
-                    }
-                    
-                }
-            }
-            if(Arrays.asList(timeQuery).indexOf("CreationTime")!=-1)
-            {for (int i=0;i<returnList.length;i++) {
-                
-                if (tempList.get(i).getImportTime().before(date[Arrays.asList(timeQuery).indexOf("CreationTime")])) {
-                    returnList.add(tempList.get(i));
-                } else {
-                    continue;
-                }
-                
-            }
-        } 
-    }
-        
-        return returnList;
-    };
 
-*/
+        };
+        ExecutorService service = Executors.newSingleThreadExecutor();
+        ScheduledFuture < List < List < List < String >>> > scheduledFuture = service.submit(c);
+        if (scheduledFuture.isDone()) {
+            List < List < List < String >>> queryBlock = scheduledFuture.get();
+        }
+        List < SearchAgent > searchAgents = new ArrayList < SearchAgent > ();
+        for (int i = 0; i < queryBlock.length; i++) {
+            searchAgents.add(new SearchAgent(queryBlock.get(i), IndexKeyStore));
+            output.addAll(searchAgents.get(i).search());
+        }
+        return output;
     }
     public void backup(String name, String path) {
         try {
