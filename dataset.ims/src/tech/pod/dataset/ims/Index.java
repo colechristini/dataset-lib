@@ -23,30 +23,52 @@ import java.io.FileInputStream;
 
 public class Index implements Serializable, Callable {
     private static final long serialVersionUID = DataStore.hashcode();
-    List < IndexKey > IndexKeyStore;
+    List < Object > IndexKeyStore;
     DataStore d;
     int cleanInterval;
     boolean b;
     long maxIndexStorage;
     int ListMemory;
-    IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage) {
-        IndexKeyStore = Collections.synchronizedList(ArrayList(millisTimeInterval));
+    int keyEjectionLevel;
+    String keySavePath;
+    boolean isBuffered;
+    List<IndexKey> keyBuffer=new ArrayList<IndexKey>();
+    int bufferSize;
+    IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage, int keyEjectionLevel, String keySavePath) {
+        IndexKeyStore = Collections.synchronizedList(ArrayList());
         IndexKeyStore.start();
         this.d = d;
         this.cleanInterval = cleanInterval;
         this.b = b;
         this.maxIndexStorage = maxIndexStorage;
+        this.keyEjectionLevel = keyEjectionLevel;
+        this.keySavePath = keySavePath;
     }
     public long calcMemory() {
-        return (long) 422 * IndexKeyStore.length;
+        return (long) 422 * IndexKeyStore.size();
     }
     public int length() {
-        return IndexKeyStore.length;
+        return IndexKeyStore.size();
     }
     public IndexKey get(int location) {
-        IndexKeyStore.get(location).incrementCounter();
-        IndexKeyStore.get(location).update();
-        return IndexKeyStore.get(location);
+
+        if (IndexKeyStore.get(location) instanceof IndexKey) {
+            IndexKeyStore.get(location).incrementCounter();
+            IndexKeyStore.get(location).update();
+            return IndexKeyStore.get(location);
+        } else if (IndexKeyStore.get(location) instanceof VerboseKey) {
+            IndexKey i;
+            FileInputStream fs = new FileInputStream(keySavePath + "/" + ((VerboseKey) IndexKeyStore.get(location)).getTitle() + ".ser");
+            ObjectInputStream in = new ObjectInputStream(fs);
+            i = in .readObject();
+            i.setLocation(location);
+            IndexKeyStore.remove(location);
+            IndexKeyStore.add(location, i);
+            IndexKeyStore.get(location).incrementCounter();
+            IndexKeyStore.get(location).update();
+            return i;
+        }
+
     }
     public String getFromStore(IndexKey i) {
         i.incrementCounter();
@@ -59,86 +81,100 @@ public class Index implements Serializable, Callable {
 
     }
     public void add(IndexKey i, String str) {
-        i.setLocation(IndexKeyStore.length);
+        
+        if(!isBuffered){ 
+        i.setLocation(IndexKeyStore.size());
         IndexKeyStore.add(i);
         d.add(i, str);
-    }
-    public void start(long sortTime,TimeUnit timeUnit) {
-       final List<IndexKey> duplicate=IndexKeyStore;
-       Callable sort=()->{
-        Collections.sort(duplicate);
-        for(int i=0;i<duplicate.length;i++){
-            duplicate.get(i).setLocation(i);
         }
-        IndexKeyStore=duplicate;
-       };
-       ScheduledExecutorService executorService=new ScheduledExecutorService();
-    executorService.schedule(callable, sortTime, TimeUnit);
-       ScheduledFuture future=executorService.submit(sort);
-       }
-    
-    @Override
-    public void stop() {
-        b = false;
+        else{
+            bufferSize++;
+            i.setLocation(IndexKeyStore.size()+bufferSize);
+            keyBuffer.add(i);
+            d.add(i, str);
+        }
     }
-    @Override
-    public Object call() throws Exception {
-
-        String oldTitle;
-        IndexKey ik;
-        int checkCode;
-        String newTitle;
-        long time;
-        long tempTime;
-        long tempTime2;
-        while (b) {
-
-            time++;
-            if (time == millisTimeInterval || calcMemory() == maxIndexStorage) {
-                ArrayList<IndexKey> tempStore = IndexKeyStore;
-                tempStore.stop();
-                here: tempTime = calcMemory();
-                for (int a = 0; a < IndexKeyStore.length; a++) {
-                    tempStore.get(a).setLocation(a);
+    public void start(long cleanTime, TimeUnit cleanTimeUnit,long ejectCheckTime,TimeUnit ejectTimeCheckUnit) {
+        final ArrayList < IndexKey > duplicate = IndexKeyStore;
+        Runnable duplicateCheck = () -> {
+            isBuffered=true;
+            String oldTitle;
+            IndexKey ik;
+            int checkCode;
+            String newTitle;
+            ArrayList < Object > tempStore = duplicate;
+            for (int a = 0; a < IndexKeyStore.size(); a++) {
+                if (tempStore.get(a) instanceof IndexKey) {
                     ik = tempStore.get(a);
-                    for (int i = 0; i < IndexKeyStore.length; a++) {
-                        checkCode = ik.duplicateCheck(IndexKeyStore.get(i));
+                    for (int i = 0; i < IndexKeyStore.size(); a++) {
+                        if(tempStore.get(i) instanceof IndexKey)
+                        {
+                            IndexKey key=tempStore.get(i);
+                            checkCode = ik.duplicateCheck(key);
                         switch (checkCode) {
                             case 1:
-                                newTitle = IndexKeyStore.get(i).getTitle() + "1";
-                                IndexKeyStore.get(i).setTitle(newTitle);
+                                newTitle = key.getTitle() + "1";
+                                tempStore.setTitle(newTitle);
                                 break;
                             case 2:
-
                                 newTitle = IndexKeyStore.get(a).getTitle() + " or " + IndexKeyStore.get(i).getTitle();
-
-
                                 IndexKeyStore.get(a).setTitle(newTitle);
                                 IndexKeyStore.remove(i);
                                 break;
 
                             case 3:
                                 IndexKeyStore.remove(i);
+                                break;
+                            case 4:
+                                break;
+                        }}
 
-                        }
                     }
+                } else {
+                    continue;
                 }
             }
-            time = 0;
-            tempStore.start();
-            IndexKeyStore = tempStore;
-        }
-        while (tempTime == calcMemory()) {
-            tempTime2 = calcMemory();
-            Thread.sleep(1);
-            if (tempTime != tempTime2) {
-                break here;
+            IndexKeyStore=tempStore;
+            IndexKeyStore.addAll(keyBuffer);
+            isBuffered=false;
+        };
+        Runnable keyListEjectCheckAgent=() -> {
+            isBuffered=true;
+            ArrayList < Object > tempStore = duplicate;
+            for(int i=0;i<tempStore.length;i++){
+                if(tempStore.get(i) instanceof IndexKey){
+                    if(tempStore.get(i).getAccessAverage()<keyEjectionLevel){
+                        FileOutputStream fs = new FileOutputStream(keySavePath + "/" + tempStore.get(i).getTitle() + ".ser");
+                        ObjectOutputStream out = new ObjectOutputStream(fs);
+                        out.writeObject(temp.get(i));
+                        out.close();
+                        fs.close();
+                        IndexKey key=tempStore.get(i);
+                        tempStore.remove(i);
+                        tempStore.add(i,new VerboseKey(key.getTitle(),keySavePath + "/" + tempStore.get(i).getTitle() + ".ser"));
+                       
+                        
+                    }
+                }
+                else{
+                    continue;
+                }
             }
-        }
-        Thread.sleep(1);
-
-        return null;
+            IndexKeyStore=tempStore;
+            IndexKeyStore.addAll(keyBuffer);
+            isBuffered=false;
+        };
+        ScheduledExecutorService keyDuplicateCleanExecutorService = Executors.newScheduledThreadPool(1);
+        ScheduledFuture keyDuplicateCleanFuture = keyDuplicateCleanExecutorService.scheduleAtFixedRate(duplicateCheck, cleanTime, cleanTime, cleanTimeUnit);
+        ScheduledExecutorService keyEjectCheckExecutorService = Executors.newScheduledThreadPool(1);
+        ScheduledFuture keyEjectCheckFuture = keyEjectCheckExecutorService.scheduleAtFixedRate(keyListEjectCheckAgent, ejectCheckTime, ejectCheckTime, ejectTimeCheckUnit);
     }
+
+    @Override
+    public void stop() {
+        b = false;
+    }
+
     public List < IndexKey > search(String queryInput) {
         final String query = queryInput;
         List < IndexKey > output = new ArrayList < IndexKey > ();
@@ -149,8 +185,8 @@ public class Index implements Serializable, Callable {
                 querygroup.get(i).addAll(Arrays.asList(queries[i].split(";")));
             }
             List < List < List < String >>> queryset = new ArrayList < ArrayList < ArrayList < String >>> ();
-            for (int i = 0; i < queryset.length; i++) {
-                for (int j = 0; j < queryset.get(i).length; j++) {
+            for (int i = 0; i < queryset.size(); i++) {
+                for (int j = 0; j < queryset.get(i).size(); j++) {
                     queryset.get(i).get(j).addAll(Arrays.asList(Arrays.asList(querygroup.get(i).get(j).split(":")).get(1).split(",")));
                 }
             }
@@ -162,21 +198,21 @@ public class Index implements Serializable, Callable {
             List < List < List < String >>> queryBlock = scheduledFuture.get();
         }
         List < SearchAgent > searchAgents = new ArrayList < SearchAgent > ();
-        List<Callable<List<IndexKey> > >  searchAgentsOutput=new  ArrayList<Callable<List<IndexKey>>>();
-        List<ScheduledFuture<List<IndexKey>>> scheduledFutures=new ArrayList<ScheduledFuture<List<IndexKey>>>();
-        ExecutorService executorService=Executors.newCachedThreadPool();
-        for (int i = 0; i < queryBlock.length; i++) {
+        List < Callable < List < IndexKey > > > searchAgentsOutput = new ArrayList < Callable < List < IndexKey >>> ();
+        List < ScheduledFuture < List < IndexKey >>> scheduledFutures = new ArrayList < ScheduledFuture < List < IndexKey >>> ();
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        for (int i = 0; i < queryBlock.size(); i++) {
             searchAgents.add(new SearchAgent(queryBlock.get(i), IndexKeyStore));
-            Callable tempCallable=()->{
+            Callable<List<IndexKey>> tempCallable = () -> {
                 return searchAgents.get(i).search();
             };
             searchAgentsOutput.add(tempCallable);
-            scheduledFutures=executorService.submit(searchAgentsOutput.get(i));
+            scheduledFutures = executorService.submit(searchAgentsOutput.get(i));
         }
-        int i=0;
-        while( i<searchAgents.length){
-            for(int a=0;searchAgents.length;a++){
-                if(scheduledFutures.get(a).isDone()){
+        int i = 0;
+        while (i < searchAgents.size()) {
+            for (int a = 0; searchAgents.size(); a++) {
+                if (scheduledFutures.get(a).isDone()) {
                     output.addAll(scheduledFutures.get(i).get());
                     i++;
                 }
@@ -184,9 +220,8 @@ public class Index implements Serializable, Callable {
         }
         return output;
     }
-    public void backup(String name, String path) {
+    public void backup(String name, String path,Index index) {
         try {
-            Index index = this;
             FileOutputStream fs = new FileOutputStream(path + "/" + name + ".ser");
             ObjectOutputStream out = new ObjectOutputStream(fs);
             out.writeObject(index);
