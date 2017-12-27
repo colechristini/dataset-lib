@@ -95,14 +95,14 @@ public class Index implements Serializable, Callable {
         }
     }
     public void start(long cleanTime, TimeUnit cleanTimeUnit,long ejectCheckTime,TimeUnit ejectTimeCheckUnit) {
-        final ArrayList < IndexKey > duplicate = IndexKeyStore;
+     
         Runnable duplicateCheck = () -> {
             isBuffered=true;
             String oldTitle;
             IndexKey ik;
             int checkCode;
             String newTitle;
-            ArrayList < Object > tempStore = duplicate;
+            ArrayList < Object > tempStore = this.getList();
             for (int a = 0; a < IndexKeyStore.size(); a++) {
                 if (tempStore.get(a) instanceof IndexKey) {
                     ik = tempStore.get(a);
@@ -136,11 +136,12 @@ public class Index implements Serializable, Callable {
             }
             IndexKeyStore=tempStore;
             IndexKeyStore.addAll(keyBuffer);
+            keyBuffer.clear();
             isBuffered=false;
         };
         Runnable keyListEjectCheckAgent=() -> {
             isBuffered=true;
-            ArrayList < Object > tempStore = duplicate;
+            ArrayList < Object > tempStore = this.getList();
             for(int i=0;i<tempStore.length;i++){
                 if(tempStore.get(i) instanceof IndexKey){
                     if(tempStore.get(i).getAccessAverage()<keyEjectionLevel){
@@ -162,6 +163,7 @@ public class Index implements Serializable, Callable {
             }
             IndexKeyStore=tempStore;
             IndexKeyStore.addAll(keyBuffer);
+            keyBuffer.clear();
             isBuffered=false;
         };
         ScheduledExecutorService keyDuplicateCleanExecutorService = Executors.newScheduledThreadPool(1);
@@ -242,5 +244,9 @@ public class Index implements Serializable, Callable {
         } catch (IOException e) {
             //TODO: handle exception
         }
+    }
+    public List<Object> getList(){
+        final List<Object> list=IndexKeyStore;
+        return list;
     }
 }
