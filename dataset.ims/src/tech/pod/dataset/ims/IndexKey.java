@@ -1,4 +1,5 @@
 package tech.pod.dataset.ims;
+import java.io.Serializable;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -6,7 +7,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-public class IndexKey implements Comparable {
+public class IndexKey implements Comparable,Serializable {
+    static final long serialVersionUID=0L;
     Object[] list = new Object[14];
     IndexKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode, Date importTime, int indexLoc,String filepath,HashMap wordOccurences) {
         list[0] = title;

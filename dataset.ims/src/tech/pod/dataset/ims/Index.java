@@ -4,15 +4,18 @@ import java.io.Serializable;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-
-import com.sun.jndi.url.iiopname.iiopnameURLContextFactory;
-
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.io.ObjectOutputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
@@ -27,7 +30,7 @@ public class Index implements Serializable, Callable {
     long maxIndexStorage;
     int ListMemory;
     IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage) {
-        IndexKeyStore = Collections.synchronizedList(SortedList(millisTimeInterval));
+        IndexKeyStore = Collections.synchronizedList(ArrayList(millisTimeInterval));
         IndexKeyStore.start();
         this.d = d;
         this.cleanInterval = cleanInterval;
@@ -56,16 +59,24 @@ public class Index implements Serializable, Callable {
 
     }
     public void add(IndexKey i, String str) {
+        i.setLocation(IndexKeyStore.length);
         IndexKeyStore.add(i);
-        d.add(i, s);
+        d.add(i, str);
     }
-    public void start() {
-        b = true;
-        ExecutorService exec = Executors.newFixedThreadPool(threadPoolSize);
-        Callable < Object > thread = new SortedList < Object > (millisTimeInterval);
-        Future < Object > future = exec.submit(thread);
-
-    }
+    public void start(long sortTime,TimeUnit timeUnit) {
+       final List<IndexKey> duplicate=IndexKeyStore;
+       Callable sort=()->{
+        Collections.sort(duplicate);
+        for(int i=0;i<duplicate.length;i++){
+            duplicate.get(i).setLocation(i);
+        }
+        IndexKeyStore=duplicate;
+       };
+       ScheduledExecutorService executorService=new ScheduledExecutorService();
+    executorService.schedule(callable, sortTime, TimeUnit);
+       ScheduledFuture future=executorService.submit(sort);
+       }
+    
     @Override
     public void stop() {
         b = false;
@@ -84,7 +95,7 @@ public class Index implements Serializable, Callable {
 
             time++;
             if (time == millisTimeInterval || calcMemory() == maxIndexStorage) {
-                SortedList tempStore = IndexKeyStore;
+                ArrayList<IndexKey> tempStore = IndexKeyStore;
                 tempStore.stop();
                 here: tempTime = calcMemory();
                 for (int a = 0; a < IndexKeyStore.length; a++) {
@@ -128,7 +139,7 @@ public class Index implements Serializable, Callable {
 
         return null;
     }
-    public List < IndexKey > searchOutput(String queryInput) {
+    public List < IndexKey > search(String queryInput) {
         final String query = queryInput;
         List < IndexKey > output = new ArrayList < IndexKey > ();
         Callable < List < List < List < String >>> > c = () -> {
@@ -151,9 +162,25 @@ public class Index implements Serializable, Callable {
             List < List < List < String >>> queryBlock = scheduledFuture.get();
         }
         List < SearchAgent > searchAgents = new ArrayList < SearchAgent > ();
+        List<Callable<List<IndexKey> > >  searchAgentsOutput=new  ArrayList<Callable<List<IndexKey>>>();
+        List<ScheduledFuture<List<IndexKey>>> scheduledFutures=new ArrayList<ScheduledFuture<List<IndexKey>>>();
+        ExecutorService executorService=Executors.newCachedThreadPool();
         for (int i = 0; i < queryBlock.length; i++) {
             searchAgents.add(new SearchAgent(queryBlock.get(i), IndexKeyStore));
-            output.addAll(searchAgents.get(i).search());
+            Callable tempCallable=()->{
+                return searchAgents.get(i).search();
+            };
+            searchAgentsOutput.add(tempCallable);
+            scheduledFutures=executorService.submit(searchAgentsOutput.get(i));
+        }
+        int i=0;
+        while( i<searchAgents.length){
+            for(int a=0;searchAgents.length;a++){
+                if(scheduledFutures.get(a).isDone()){
+                    output.addAll(scheduledFutures.get(i).get());
+                    i++;
+                }
+            }
         }
         return output;
     }
