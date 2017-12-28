@@ -61,7 +61,7 @@ public class DataStore extends ConcurrentSkipListMap implements Serializable, Ca
             storageLocations[i] = new File(storageTiering[i]);
         }
         while (true) {
-            here: for (int i = 0; i < index.length(); i++) {
+             for (int i = 0; i < index.length(); i++) {
                 for (int z = 0; z < storageTiering.length; z++) {
                     if (a.get(i).getAccessAverage() < thresholds[z]) {
                         b.append(storageTiering[i]);
@@ -79,10 +79,7 @@ public class DataStore extends ConcurrentSkipListMap implements Serializable, Ca
                         index.get(i).setPath(b.toString());
                         b.setLength(0);
                         index.get(i).setLocationTier(z);
-                        break here;
-                    } else {
-                        break here;
-                    }
+                        }
                 }
             }
             Thread.sleep((long) checkInterval);
