@@ -11,6 +11,11 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+
 import org.apache.commons.io;
 
 import com.amazonaws.AmazonClientException;
@@ -24,10 +29,11 @@ import javafx.scene.shape.Path;
 
 public class S3Provider implements StorageProvider {
     boolean acceptingConnections;
-    static String bucketName;
-
-    S3Provider(String bucketName, boolean acceptingConnections) {
+     String bucketName;
+    int maxAgents;
+    S3Provider(String bucketName, int maxAgents,boolean acceptingConnections) {
         this.bucketName = bucketName;
+        this.maxAgents=maxAgents;
         this.acceptingConnections = acceptingConnections;
     }
     public void start(int port) {
@@ -36,8 +42,10 @@ public class S3Provider implements StorageProvider {
         ByteBuffer parameters;
         ByteBuffer content;
         CharBuffer buffer;
-        while (acceptingConnections) {
-            SocketChannel socketChannel = serverSocketChannel.accept();
+        List<ScheduledFuture> futures=new ArrayList<ScheduledFuture>();
+        ExecutorService executorService=Executors.newFixedThreadPool(maxAgents);
+        int i;
+        Runnable serverThread= () -> {
             socketChannel.read(parameters);
             if (params[0].equals("put")) {
                 socketChannel.read(content);
@@ -51,11 +59,20 @@ public class S3Provider implements StorageProvider {
                 this.put(params);
             }
            else if (params[0].equals("get")) {
-            socketChannel.write(this.get(params));
+               ByteBuffer b=this.get(params);
+            socketChannel.write(b);
         }
         else if (params[0].equals("remove")) {
             this.remove(params);
-        }
+            }
+            futures.remove(i);
+        };
+        while (acceptingConnections) {
+            SocketChannel socketChannel = serverSocketChannel.accept();
+            ScheduledFuture future=executorService.submit(serverThread);
+            i=futures.size();
+            futures.add(future);
+            
     }
 }
 public void remove(Object[] params){
@@ -72,7 +89,7 @@ public void remove(Object[] params){
     }
     public void put(Object[] params) {
         String key = (String) params[1];
-        File file = new File(params[1]));
+        File file = new File(params[1]);
         AmazonS3 s3client = new AmazonS3Client(new ProfileCredentialsProvider());
         try {
             s3client.putObject(new PutObjectRequest(bucketName, key, file));
