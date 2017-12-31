@@ -69,10 +69,11 @@ public class S3Provider implements StorageProvider {
         };
         while (acceptingConnections) {
             SocketChannel socketChannel = serverSocketChannel.accept();
-            ScheduledFuture future=executorService.submit(serverThread);
-            i=futures.size();
-            futures.add(future);
-            
+            if(socketChannel!=null) { 
+                ScheduledFuture future=executorService.submit(serverThread);
+                i=futures.size();
+                futures.add(future);
+            }
     }
 }
 public void remove(Object[] params){
