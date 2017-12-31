@@ -56,4 +56,11 @@ public class HeterogenousPool implements StoragePool {
     public HashMap<String,Integer> returnTierSizes(){
         return tierSizes;
     }
+    public ArrayList<String> getAllDaemons(){
+        List<String> output=new ArrayList<String>();
+        for(int i=0;i<storageDaemons.size();i++){
+            output.add(storageDaemons.get(i).get(replicationLayers.get(i)));
+        }
+        return output;
+    }
 }

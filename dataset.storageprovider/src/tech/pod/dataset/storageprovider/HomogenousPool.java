@@ -32,4 +32,14 @@ public class HomogenousPool implements StoragePool {
     public void replace(int stripe, int repLayer, String newDaemon) {
         storageDaemons.get(stripe).set(repLayer, newDaemon);
     }
+    public ArrayList<String> getAllDaemons(){
+        List<String> output=new ArrayList<String>();
+        for(int i=0;i<storageDaemons.size();i++){
+            output.add(storageDaemons.get(i).get(replicationLayers.get(i)));
+        }
+        return output;
+    }
+    public void incrementRepLayer(int stripe) {
+        replicationLayers.set(stripe, replicationLayers.get(stripe) + 1);
+    }
 }
