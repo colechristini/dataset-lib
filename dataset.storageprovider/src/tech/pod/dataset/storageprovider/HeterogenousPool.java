@@ -26,7 +26,7 @@ public class HeterogenousPool implements StoragePool {
         replicationLayers.add((Integer)0);
     }
     public void addStripe(String[] stripeDisks) {
-        throw UnsupportedOperationException;
+        throw new UnsupportedOperationException();
     }
     public void addRepLayer(String[] stripeDisks) {
         if (stripeDisks.length == storageDaemons.size()) {
