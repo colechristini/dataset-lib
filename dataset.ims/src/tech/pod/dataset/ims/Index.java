@@ -266,7 +266,8 @@ public class Index implements Serializable, Callable {
         ArrayList<IndexKey> keys=new ArrayList<IndexKey>();
         for(int i=0;IndexKeyStore.size();i++){
             if(IndexKeyStore.get(i) instanceof IndexKey){
-                keys.add((IndexKey)IndexKeyStore.get(i));
+                keys.add((IndexKey)IndexKeyStore.get
+                (i));
             }
             else if(IndexKeyStore.get(i) instanceof VerboseKey){
                 VerboseKey key=(VerboseKey)IndexKeyStore.get(i);
@@ -276,5 +277,19 @@ public class Index implements Serializable, Callable {
                 keys.add(tempKey);
             }
         }
+    }
+    public List<Object> stats(){
+        List<Object> stats=new ArrayList<Object>();
+        stats.add(IndexKeyStore.size());
+        stats.add(keyBuffer.size());
+        stats.add(this.calcMemory());
+        stats.add(maxIndexStorage);
+        stats.add(bufferSize);
+        stats.add(keyEjectionLevel);
+        stats.add(keySavePath);
+        stats.add(serialVersionUID);
+        stats.add(cleanInterval);
+        
+        return stats;
     }
 }
