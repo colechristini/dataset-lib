@@ -5,11 +5,15 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class DistributedStorageProvider implements StorageProvider {
     ConcurrentHashMap < String, Boolean > heartbeatMap = new ConcurrentHashMap < String, Boolean > ();
@@ -25,8 +29,33 @@ public class DistributedStorageProvider implements StorageProvider {
             storagePools.add(new HeterogenousPool());
         }
     }
+
+    public void addPool(String mode,List<List<String>> presuppliedDaemons,List<Integer> tiers){
+        if(mode=="homogenous"){
+            storagePools.add(new HomogenousPool());
+        }
+        else if(mode=="heterogenous"){
+            storagePools.add(new HeterogenousPool());
+        }
+        if(storagePools.get(storagePools.size()-1) instanceof HomogenousPool){
+            for(List i:presuppliedDaemons){
+            storagePools.get(storagePools.size()-1).addStripe((String[])i.toArray());
+                for(int inc=0;inc<i.size();i++){
+                    heartbeatMap.put((String)i.get(inc), (Boolean)true);
+                }
+            }
+        }
+        else if(storagePools.get(storagePools.size()-1) instanceof HeterogenousPool){
+            for(int i=0;i< presuppliedDaemons.size();i++){
+            storagePools.get(storagePools.size()-1).addStripe((String[])presuppliedDaemons.get(i).toArray(),(int)tiers.get(i));
+                for(int inc=0;inc<presuppliedDaemons.get(i).size();i++){
+                    heartbeatMap.put((String)presuppliedDaemons.get(i).get(inc), (Boolean)true);
+                }
+            }
+        }
+    }
     
-    public void startHeartbeat(int port,int acceptablePing){
+    public void startHeartbeat(int port,int acceptablePing,long heartbeatTimer,TimeUnit unit){
         Runnable heartbeat=()->{
             Socket s;
       
@@ -57,10 +86,12 @@ public class DistributedStorageProvider implements StorageProvider {
                     PrintWriter writer=new PrintWriter(s.getOutputStream(), true);
                     writer.write("ping");
                     ExecutorService service=Executors.newSingleThreadExecutor();
-                    Future f=service.submit(reciever);
+                    ScheduledFuture f=service.submit(reciever);
                 }
             }
         };
+        ScheduledExecutorService service=Executors.newScheduledThreadPool(1);
+        ScheduledFuture future=service.scheduleWithFixedDelay(heartbeat, heartbeatTimer, heartbeatTimer, unit);
     }
 
     public void put(Object[] o) {
