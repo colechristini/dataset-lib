@@ -94,15 +94,22 @@ public class Index implements Serializable, Callable {
             d.add(i, str);
         }
     }
-    public void start(long cleanTime, TimeUnit cleanTimeUnit,long ejectCheckTime,TimeUnit ejectTimeCheckUnit) {
+    public void start(long cleanTime, TimeUnit cleanTimeUnit,long ejectCheckTime,TimeUnit ejectTimeCheckUnit,Boolean cleanFlushed) {
      
         Runnable duplicateCheck = () -> {
+
             isBuffered=true;
             String oldTitle;
             IndexKey ik;
             int checkCode;
             String newTitle;
-            ArrayList < Object > tempStore = this.getList();
+            ArrayList < Object > tempStore;
+            if(cleanFlushed==true){
+                tempStore=this.deepClone();
+            }
+            else{
+                tempStore=this.getList();
+            }
             for (int a = 0; a < IndexKeyStore.size(); a++) {
                 if (tempStore.get(a) instanceof IndexKey) {
                     ik = tempStore.get(a);
@@ -141,7 +148,13 @@ public class Index implements Serializable, Callable {
         };
         Runnable keyListEjectCheckAgent=() -> {
             isBuffered=true;
-            ArrayList < Object > tempStore = this.getList();
+            ArrayList < Object > tempStore;
+            if(cleanFlushed==true){
+                tempStore=this.deepClone();
+            }
+            else{
+                tempStore=this.getList();
+            }
             for(int i=0;i<tempStore.length;i++){
                 if(tempStore.get(i) instanceof IndexKey){
                     if(tempStore.get(i).getAccessAverage()<keyEjectionLevel){
@@ -239,7 +252,7 @@ public class Index implements Serializable, Callable {
             Index index = null;
             FileInputStream fs = new FileInputStream(path + "/" + name + ".ser");
             ObjectInputStream in = new ObjectInputStream(fs);
-            index = in .readObject();
+            index = in.readObject();
             i = index;
         } catch (IOException e) {
             //TODO: handle exception
@@ -248,5 +261,20 @@ public class Index implements Serializable, Callable {
     public List<Object> getList(){
         final List<Object> list=IndexKeyStore;
         return list;
+    }
+    public ArrayList<IndexKey> deepClone(){
+        ArrayList<IndexKey> keys=new ArrayList<IndexKey>();
+        for(int i=0;IndexKeyStore.size();i++){
+            if(IndexKeyStore.get(i) instanceof IndexKey){
+                keys.add((IndexKey)IndexKeyStore.get(i));
+            }
+            else if(IndexKeyStore.get(i) instanceof VerboseKey){
+                VerboseKey key=(VerboseKey)IndexKeyStore.get(i);
+                FileInputStream fs = new FileInputStream(key.getPath());
+                ObjectInputStream in = new ObjectInputStream(fs);
+                IndexKey tempKey=in.readObject();
+                keys.add(tempKey);
+            }
+        }
     }
 }
