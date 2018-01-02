@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.ServerSocketChannel;
@@ -36,12 +37,12 @@ public class S3Provider implements StorageProvider {
         this.maxAgents=maxAgents;
         this.acceptingConnections = acceptingConnections;
     }
-    public void start(int port) {
+    public void start(int port,int paramBufferSize,int maxFileSize) {
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
-        ByteBuffer parameters;
-        ByteBuffer content;
-        CharBuffer buffer;
+        ByteBuffer parameters=ByteBuffer.allocate(paramBufferSize);
+        ByteBuffer content=ByteBuffer.allocate(maxFileSize);
+        CharBuffer buffer=CharBuffer.allocate(paramBufferSize);
         List<ScheduledFuture> futures=new ArrayList<ScheduledFuture>();
         ExecutorService executorService=Executors.newFixedThreadPool(maxAgents);
         int i;
