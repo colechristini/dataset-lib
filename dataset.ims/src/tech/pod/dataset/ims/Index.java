@@ -1,11 +1,14 @@
 package tech.pod.dataset.ims;
 
 import java.io.Serializable;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -16,7 +19,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import tech.pod.dataset.storageprovider.StorageProvider;
+
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.FileInputStream;
@@ -34,7 +42,9 @@ public class Index implements Serializable, Callable {
     boolean isBuffered;
     List<IndexKey> keyBuffer=new ArrayList<IndexKey>();
     int bufferSize;
-    IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage, int keyEjectionLevel, String keySavePath) {
+    String storageProviderPath,storageProviderPort;
+    String name;
+    IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage, int keyEjectionLevel, String keySavePath,String name) {
         IndexKeyStore = Collections.synchronizedList(ArrayList());
         IndexKeyStore.start();
         this.d = d;
@@ -43,6 +53,21 @@ public class Index implements Serializable, Callable {
         this.maxIndexStorage = maxIndexStorage;
         this.keyEjectionLevel = keyEjectionLevel;
         this.keySavePath = keySavePath;
+        this.name=name;
+       
+    }
+    IndexKeyStore(DataStore d, int cleanInterval, long millisTimeInterval, boolean b, long maxIndexStorage, int keyEjectionLevel, String keySavePath,String storageProviderPath,String storageProviderPort,String name) {
+        IndexKeyStore = Collections.synchronizedList(ArrayList());
+        IndexKeyStore.start();
+        this.d = d;
+        this.cleanInterval = cleanInterval;
+        this.b = b;
+        this.maxIndexStorage = maxIndexStorage;
+        this.keyEjectionLevel = keyEjectionLevel;
+        this.keySavePath = keySavePath;
+        this.storageProviderPath=storageProviderPath;
+        this.storageProviderPort=storageProviderPort;
+        this.name=name;
     }
     public long calcMemory() {
         return (long) 422 * IndexKeyStore.size();
@@ -235,17 +260,34 @@ public class Index implements Serializable, Callable {
         }
         return output;
     }
-    public void backup(String name, String path,Index index) {
-        try {
+    public void backup(String name, String path,String indexName) {
+        if(storageProviderPath!=null){
+            try{
+            Socket socket=new Socket(storageProviderPath, storageProviderPort);
+            PrintWriter writer=new PrintWriter(socket.getOutputStream(), true);
+            ObjectOutputStream serializableOutputStream=new ObjectOutputStream(socket.getOutputStream());
+            Date d=new Date();
+            String timestamp=d.toString();
+            writer.write("put:"+indexName);
+            serializableOutputStream.writeObject(this);
+            }catch(UnknownHostException uhe){
+                uhe.printStackTrace();
+            }
+        }
+        else{
+            try {
             FileOutputStream fs = new FileOutputStream(path + "/" + name + ".ser");
             ObjectOutputStream out = new ObjectOutputStream(fs);
-            out.writeObject(index);
+            out.writeObject(this);
             out.close();
             fs.close();
-        } catch (IOException e) {
+            } catch (IOException e) {
             //TODO: handle exception
+            }
         }
-
+    }
+    public String getName(){
+        return name;
     }
     public void restore(String name, String path, Index i) {
         try {
