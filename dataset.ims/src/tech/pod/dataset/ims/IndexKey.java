@@ -87,7 +87,10 @@ public class IndexKey implements Comparable,Serializable {
         return list[9];
     }
     public int update() {
-        list[9] = list[8] / list[7].getTime() - list[6].getTime();
+        Date d=new Date();
+        long l=d.getTime();
+        long l2=(Date)list[6].getTime();
+        list[9] = (long)list[8] /  l- l2;
     }
     public int getLocation() {
         return list[10];
