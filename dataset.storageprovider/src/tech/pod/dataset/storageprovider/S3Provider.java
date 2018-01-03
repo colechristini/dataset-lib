@@ -82,16 +82,56 @@ public class S3Provider implements StorageProvider {
     }
 }
 public void remove(Object[] params){
-    AmazonS3 s3client = new AmazonS3Client(new ProfileCredentialsProvider());        
+    AmazonS3 s3client = new AmazonS3Client(new ProfileCredentialsProvider());    
+    try{    
     s3client.deleteObject(new DeleteObjectRequest(bucketName, params[1]));
+} catch (AmazonServiceException ase) {
+    System.out.println("Caught an AmazonServiceException, which " +
+    "means your request made it " +
+    "to Amazon S3, but was rejected with an error response" +
+    " for some reason.");
+    System.out.println("Error Message:" + ase.getMessage());
+    System.out.println("HTTP Status Code:" + ase.getStatusCode());
+    System.out.println("AWS Error Code:" + ase.getErrorCode());
+    System.out.println("Error Type:" + ase.getErrorType());
+    System.out.println("Request ID:" + ase.getRequestId());
+} catch (AmazonClientException ace) {
+    System.out.println("Caught an AmazonClientException, which " +
+    "means the client encountered " +
+    "an internal error while trying to " +
+    "communicate with S3, " +
+    "such as not being able to access the network.");
+    System.out.println("Error Message: " + ace.getMessage());
+}
+    
 }
     public Object get(Object[] params){
-        AmazonS3 s3Client = new AmazonS3Client(new ProfileCredentialsProvider());        
+        AmazonS3 s3Client = new AmazonS3Client(new ProfileCredentialsProvider());      
+        try{  
         S3Object object = s3Client.getObject(new GetObjectRequest(bucketName, params[1]));
         InputStream objectData = object.getObjectContent();
         byte[] bytes=IOUtils.toByteArray(is);
         ByteBuffer b=ByteBuffer.wrap(bytes);
         return b;
+    } catch (AmazonServiceException ase) {
+        System.out.println("Caught an AmazonServiceException, which " +
+        "means your request made it " +
+        "to Amazon S3, but was rejected with an error response" +
+        " for some reason.");
+        System.out.println("Error Message:" + ase.getMessage());
+        System.out.println("HTTP Status Code:" + ase.getStatusCode());
+        System.out.println("AWS Error Code:" + ase.getErrorCode());
+        System.out.println("Error Type:" + ase.getErrorType());
+        System.out.println("Request ID:" + ase.getRequestId());
+    } catch (AmazonClientException ace) {
+        System.out.println("Caught an AmazonClientException, which " +
+        "means the client encountered " +
+        "an internal error while trying to " +
+        "communicate with S3, " +
+        "such as not being able to access the network.");
+        System.out.println("Error Message: " + ace.getMessage());
+    }
+       
     }
     public void put(Object[] params) {
         String key = (String) params[1];
