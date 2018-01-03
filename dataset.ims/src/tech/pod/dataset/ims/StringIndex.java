@@ -1,9 +1,10 @@
 package tech.pod.dataset.ims;
 
-import java.io.Serializable;
 import java.net.Socket;
 import java.net.UnknownHostException;
+
 import java.text.DateFormat;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -20,16 +21,15 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import tech.pod.dataset.storageprovider.StorageProvider;
-
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.FileInputStream;
+import java.io.Serializable;
 
-public class StringIndex implements Serializable, Runnable, Index {
+public class StringIndex implements Index, Serializable{
     private static final long serialVersionUID = DataStore.hashcode();
     List < IndexKey > IndexKeyStore;
     DataStore d;
