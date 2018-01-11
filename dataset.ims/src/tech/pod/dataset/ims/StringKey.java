@@ -7,6 +7,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+/*StringKey is the reference IndexKey implementation, using all methods, along with implementing Comparable and Serializable.
+It also supports a more intelligent duplicate check.
+*/
 public class StringKey implements IndexKey, Comparable, Serializable {
     static final long serialVersionUID=0L;
     Object[] list = new Object[15];

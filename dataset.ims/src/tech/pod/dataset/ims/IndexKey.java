@@ -1,7 +1,7 @@
 package tech.pod.dataset.ims;
 import java.util.UUID;
 import java.io.Serializable;
-
+//Minimal IndexKey interface allowing for lightweight and verbose keys for optimization
 public interface IndexKey extends Comparable, Serializable{
     public String getPath();
     public UUID getUUID();

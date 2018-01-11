@@ -1,7 +1,7 @@
 package tech.pod.dataset.ims;
 
 import java.util.ArrayList;
-
+//Basic Index interface implemented by every Index
 public interface Index{
 public IndexKey get(int location);
 public Object getFromStore(IndexKey i);

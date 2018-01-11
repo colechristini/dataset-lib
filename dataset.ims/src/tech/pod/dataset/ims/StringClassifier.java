@@ -3,7 +3,7 @@ package tech.pod.dataset.ims;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+//StringClassifier is a ClassifierRule using a regex on either the title, the tags, or the hashcode of a list of IndexKeys
 public class StringClassifier < IndexKey > implements ClassifierRule < IndexKey > {
     List < IndexKey > classifierOutput;
     String regex,mode;

@@ -2,7 +2,7 @@ package tech.pod.dataset.ims;
 
 import java.util.List;
 import java.util.concurrent.Future;
-
+//DateClassifier with support for both before and after operations on LastAccessTime, import, and creation time for the IndexKey
 public class DateClassifier implements ClassifierRule<IndexKey>{
     List < IndexKey > classifierOutput;
     String mode;
@@ -16,10 +16,6 @@ public class DateClassifier implements ClassifierRule<IndexKey>{
     }
 
     public List < IndexKey > classify() {
-        
-       
-        
-         
             if (mode == "after") {
                 if (date == "lastAccess") {
                     for (int i = 0; i < classifierOutput.length; i++) {

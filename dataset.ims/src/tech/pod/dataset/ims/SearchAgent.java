@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
-/* SearcAgent acts as the  agent of a search, managing the classifiers with arraylists for From DateClassifiers,To DateClassifiers,Regex StringClassifiers,and WordHistogramClassifiers*/
+/* SearchAgent acts as the  agent of a search, managing the classifiers with arraylists for From DateClassifiers,To DateClassifiers,Regex StringClassifiers,and WordHistogramClassifiers*/
 public class SearchAgent {
     List < List < String >> searchGroup;
     List < IndexKey > searchOutput;

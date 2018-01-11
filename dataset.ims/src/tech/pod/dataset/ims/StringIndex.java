@@ -29,6 +29,13 @@ import java.io.ObjectInputStream;
 import java.io.FileInputStream;
 import java.io.Serializable;
 
+import tech.pod.dataset.appserver.*;
+/*StringIndex is the reference Index implementation, including the entire feature set, 
+including flushing rarely-used keys to disk and a smarter duplicate check that can intelligently combine or delete keys.
+The search system is based on an ArrayList of SearchAgents that, each passed a single '|'(or) clause of the query.
+Besides basic get, remove, and put methods, it can also replace a key, or the content of a string in the store, along with removing a String from the store.
+You can also back up the Index over the network to a StorageProvider or to disk, and restore it over the network for remote managment.
+*/
 public class StringIndex implements Index, Serializable{
     private static final long serialVersionUID = DataStore.hashcode();
     List < IndexKey > IndexKeyStore;
@@ -69,9 +76,11 @@ public class StringIndex implements Index, Serializable{
         this.storageProviderPort=storageProviderPort;
         this.name=name;
     }
+    @Hidden
     public long calcMemory() {
         return (long) 422 * IndexKeyStore.size();
     }
+    @Hidden
     public int length() {
         return IndexKeyStore.size();
     }
@@ -122,6 +131,7 @@ public class StringIndex implements Index, Serializable{
             d.add(i, str);
         }
     }
+    //Cosider making this @Hidden?
     public void start(long cleanTime, TimeUnit cleanTimeUnit,long ejectCheckTime,TimeUnit ejectTimeCheckUnit,Boolean cleanFlushed) {
      
         Runnable duplicateCheck = () -> {
@@ -212,7 +222,7 @@ public class StringIndex implements Index, Serializable{
         ScheduledExecutorService keyEjectCheckExecutorService = Executors.newScheduledThreadPool(1);
         ScheduledFuture keyEjectCheckFuture = keyEjectCheckExecutorService.scheduleAtFixedRate(keyListEjectCheckAgent, ejectCheckTime, ejectCheckTime, ejectTimeCheckUnit);
     }
-
+    //If start() is @Hidden, this should be to
     @Override
     public void stop() {
         b = false;
@@ -306,10 +316,12 @@ public class StringIndex implements Index, Serializable{
             //TODO: handle exception
         }
     }
+    @Hidden
     public List<Object> getList(){
         final List<Object> list=IndexKeyStore;
         return list;
     }
+    @Hidden
     public ArrayList<IndexKey> deepClone(){
         ArrayList<IndexKey> keys=new ArrayList<IndexKey>();
         for(int i=0;IndexKeyStore.size();i++){

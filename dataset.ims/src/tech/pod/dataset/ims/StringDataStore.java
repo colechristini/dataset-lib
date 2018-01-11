@@ -12,7 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-
+//StringDataStore is a lightweight dataStore for lightweight document storage that self-cleans, evicting rarely used documents to disk over a StorageClient to a StorageProvider 
 public class StringDataStore implements DataStore, Serializable, Runnable {
     private static final long serialVersionUID = DataStore.hashcode();
     ConcurrentSkipListMap < IndexKey, String > dataStore = new ConcurrentSkipListMap < IndexKey, String > ();
