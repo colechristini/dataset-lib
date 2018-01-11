@@ -14,7 +14,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
+import tech.pod.dataset.appserver.*;
 public class DistributedStorageProvider implements StorageProvider {
     ConcurrentHashMap < String, Boolean > heartbeatMap = new ConcurrentHashMap < String, Boolean > ();
     List < StoragePool > storagePools = new ArrayList < StoragePool > ();
@@ -54,7 +54,7 @@ public class DistributedStorageProvider implements StorageProvider {
             }
         }
     }
-    
+    @Hidden
     public void startHeartbeat(int port,int acceptablePing,long heartbeatTimer,TimeUnit unit){
         Runnable heartbeat=()->{
             Socket s;

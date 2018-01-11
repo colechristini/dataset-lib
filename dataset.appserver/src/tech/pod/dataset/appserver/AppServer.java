@@ -1,6 +1,10 @@
 package tech.pod.dataset.appserver;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AppServer {
@@ -10,6 +14,7 @@ public class AppServer {
         this.servlet=servlet;
         this.acceptingConnections=acceptingConnections;
     }
+    @Hidden
     public void recieve(int port,int paramBufferSize,int maxFileSize) {
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
@@ -18,11 +23,20 @@ public class AppServer {
         CharBuffer buffer = CharBuffer.allocate(paramBufferSize);
         List < ScheduledFuture > futures = new ArrayList < ScheduledFuture > ();
         ExecutorService executorService = Executors.newFixedThreadPool(maxAgents);
-        int i;
+        int currentConnections;
         Method[] methods=servlet.class.getDeclaredMethods();
+        List<String> methodNames=new ArrayList<String>();
         ConcurrentHashMap<String,Method> hashMap=new ConcurrentHashMap<String,Method>();
+        SocketChannel[] sections;
         for(Method method:methods){
+            Annotation[] annotations=method.getAnnotations();
+            if(Arrays.asList(annotations).contains(Hidden.class)){
+                continue;
+            }
+            else{
             hashMap.put(method.getName(),method);
+            methodNames.add(method.getName());
+            }
         }
         Runnable serverThread = () -> {
            /* socketChannel.read(parameters);
@@ -33,7 +47,7 @@ public class AppServer {
             buffer = buff.asCharBuffer();
             String str = buffer.toString();
             String[] params = str.split(":");
-            if (params[0].equals("put")) {
+            if (params[0].equals("put")) {       
                 java.nio.file.Path p = Paths.get(tempPath + params[2]);
                 Files.write(p, content.array());
                 this.put(params);
@@ -48,7 +62,7 @@ public class AppServer {
             
         };
         while (acceptingConnections) {
-            SocketChannel socketChannel = serverSocketChannel.accept();
+            socketChannel[0] = serverSocketChannel.accept();
             if (socketChannel != null) {
                 ScheduledFuture future = executorService.submit(serverThread);
                 i = futures.size();
