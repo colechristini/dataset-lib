@@ -28,9 +28,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 
-
-
-import javafx.scene.shape.Path;
+//S3Provider acts as a basic StorageProvider, uploading, getting, and removing objects from Amazon AWS S3
 
 public class S3Provider implements StorageProvider {
     boolean acceptingConnections;

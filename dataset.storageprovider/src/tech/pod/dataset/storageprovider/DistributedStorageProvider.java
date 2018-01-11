@@ -29,7 +29,7 @@ public class DistributedStorageProvider implements StorageProvider {
             storagePools.add(new HeterogenousPool());
         }
     }
-
+    
     public void addPool(String mode,List<List<String>> presuppliedDaemons,List<Integer> tiers){
         if(mode=="homogenous"){
             storagePools.add(new HomogenousPool());

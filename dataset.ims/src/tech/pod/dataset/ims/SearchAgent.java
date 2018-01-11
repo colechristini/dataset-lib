@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
-
+/* SearcAgent acts as the  agent of a search, managing the classifiers with arraylists for From DateClassifiers,To DateClassifiers,Regex StringClassifiers,and WordHistogramClassifiers*/
 public class SearchAgent {
     List < List < String >> searchGroup;
     List < IndexKey > searchOutput;
@@ -18,11 +18,8 @@ public class SearchAgent {
         this.searchOutput = searchOutput;
     }
     public List < IndexKey > search() {
-       
-     
-           
             DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
-            if (searchGroup.get(0).get(0).indexOf("any") == -1) {//from
+            if (searchGroup.get(0).get(0).indexOf("any") == -1) {//from:date
                 List < DateClassifier > dateClassifiers = new ArrayList < DateClassifier > ();
                 for (int i = 0; i < searchGroup.get(0).length; i++) {
                     dateClassifiers.add(new DateClassifier(format.parse(searchGroup.get(0).get(i).split("-")[1]), "after", searchGroup.get(0).get(i).split("-")[0], searchOutput)); //need to format first parameter
