@@ -1,7 +1,7 @@
 package tech.pod.dataset.storageprovider;
 
 import java.util.ArrayList;
-
+//Basic StoragePool interface
 public interface StoragePool{
 public String get( int stripe);
 public void addStripe(String[] stripeDisks, int tier);

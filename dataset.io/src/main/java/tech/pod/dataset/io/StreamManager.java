@@ -7,11 +7,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-public class StreamManager {
+//StreamManager is a basic Manager implementation that manages a single StreamThread, allowing streaming data over the network
+public class StreamManager implements Manager{
     ReentrantLock pauseLock;
     ReentrantLock stopLock;
     StreamThread thread;
-
     StreamManager(int port, int status, int bufferSize,ReentrantLock pauseLock,ReentrantLock stopLock,String tempName,int sync) {
         thread = new StreamThread(port, bufferSize, stopLock, pauseLock,tempName,sync);
     }
@@ -19,7 +19,7 @@ public class StreamManager {
         if (stopLock.isLocked()) {
             stopLock.unlock();
         }
-        ExecutorService exec = Executors.newFixedThreadPool(1);
+        ExecutorService exec = Executors.newSingleThreadExecutor();
         Callable < ByteBuffer > callableThread = thread;
         List < Future < ByteBuffer > > Futures = new ArrayList < Future < ByteBuffer > > ();
         Future < ByteBuffer > future = exec.submit(callableThread);

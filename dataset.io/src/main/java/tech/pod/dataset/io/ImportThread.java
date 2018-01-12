@@ -6,8 +6,8 @@ import java.nio.*;
 import java.nio.channels.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+//ImportThread is a basic Callable implementation importing a section of a file from disk and returning that as a ByteBuffer
 public class ImportThread implements Callable < ByteBuffer > {
-    // private static final Logger logger =Logger.getLogger(ImportThread.class.getName());
     RandomAccessFile file;
     FileChannel inChannel = file.getChannel();
     ByteBuffer buf;

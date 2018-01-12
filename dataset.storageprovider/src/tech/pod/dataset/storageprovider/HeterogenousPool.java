@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-
+//StoragePool with per-stripe tiering instead of a homogeneous pool where every server is the same, containing all tiers.
 public class HeterogenousPool implements StoragePool {
     List < List < String >> storageDaemons = new ArrayList < ArrayList < String >> ();
     List < Integer > tiers = new ArrayList < Integer > ();

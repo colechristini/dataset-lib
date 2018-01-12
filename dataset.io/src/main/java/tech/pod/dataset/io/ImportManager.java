@@ -10,8 +10,8 @@ import java.util.logging.Logger;
 import java.util.List;
 import java.util.ArrayList;
 
-//import java.util.concurrent.*;
-public class ImportManager implements Callable < ByteBuffer > {
+//ImportManager is a basic manager for a List of ImportThreads allowing for rapid, multithreaded import of files from disk.
+public class ImportManager implements Callable < ByteBuffer >, Manager {
     RandomAccessFile file;
     int threadPoolSize;
     String globalLogger;

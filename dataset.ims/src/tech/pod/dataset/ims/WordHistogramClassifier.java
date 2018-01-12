@@ -3,7 +3,7 @@ package tech.pod.dataset.ims;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-//A WordHistogramClassifier classifies an IndexKey list based on whether an individual IndexKey's WordHistogramList contains the queried words in the given quantities
+//WordHistogramClassifier classifies an IndexKey list based on whether an individual IndexKey's WordHistogramList contains the queried words in the given quantities
 public class WordHistogramClassifier implements ClassifierRule < IndexKey > {
     List < IndexKey > classifierOutput;
     List < String > wordKeys;

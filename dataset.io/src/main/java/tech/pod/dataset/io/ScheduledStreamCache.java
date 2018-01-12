@@ -6,7 +6,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+/*ScheduledStreamCache is a cache allowing for flow coming from a constant StreamOutput
+to be batched and flushed at regular intervals or with user input to allow for batch operations on the set*/
 public class ScheduledStreamCache < T > {
     String globalLogger;
     List < T > output;

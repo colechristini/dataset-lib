@@ -9,6 +9,9 @@ import java.util.concurrent.locks.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.nio.channels.FileChannel.MapMode;
+/*BinaryStreamParser is a continuous BinaryParser taking an ImportThread
+and outputting a single list to be placed into a StreamOutput wrapper.
+*/
 public class BinaryStreamParser < T > {
     ReentrantLock pauseLock;
     ReentrantLock stopLock;

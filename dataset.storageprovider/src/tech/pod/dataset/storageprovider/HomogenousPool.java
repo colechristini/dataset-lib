@@ -3,7 +3,7 @@ package tech.pod.dataset.storageprovider;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
+//StoragePool whose servers contain multiple storage tiers in each server, instead of per stripe tiering
 public class HomogenousPool implements StoragePool {
     List < List < String >> storageDaemons = new ArrayList < ArrayList < String >> ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();

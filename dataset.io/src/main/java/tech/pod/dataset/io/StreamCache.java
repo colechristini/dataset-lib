@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+/*StreamCache is a cache allowing for flow coming from a constant StreamOutput
+to be batched and flushed by user input to allow for batch operations on the set*/
 public class StreamCache < T > {
     String globalLogger;
     List < T > output;

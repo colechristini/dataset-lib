@@ -10,15 +10,16 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReentrantLock;
-
+/*StreamThread is standalone Callable thread taking data over a ServerSocketChannel,
+and communicating with a parser using a MappedByteBuffer
+*/
 public class StreamThread implements Callable < ByteBuffer > {
 
     ByteBuffer buff;
     int port;
     String tempName;
     int bufferSize;
-    ReentrantLock stop,
-    pause;
+    ReentrantLock stop,pause;
     int sync;
     StreamThread(int port, int bufferSize, ReentrantLock stop, ReentrantLock pause, String tempName, int sync) {
         this.sync = sync;

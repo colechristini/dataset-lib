@@ -4,7 +4,9 @@ import java.nio.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.*;
-
+/*BinaryParser parses a ByteBuffer into either an array of Strings or Doubles, 
+taking the type to parse into and a Class of generic type 'T' for casting
+*/
 public class BinaryParser < T > {
     ByteBuffer buffer;
     String globalLogger;
@@ -14,7 +16,7 @@ public class BinaryParser < T > {
         }
         this.buffer = buffer;
     }
-    public List < T > binaryDecode(String type, Class < T > temp) {
+    public List < T > binaryDecode(String type, Class < T > caster) {
         List < T > Output = new ArrayList < T > ();
         Logger logger = null;
         if (globalLogger != null) {
@@ -32,7 +34,7 @@ public class BinaryParser < T > {
             String str = arr.toString();
             String[] strs = str.split("//");
             for (String i: strs) {
-                T a = temp.cast(i);
+                T a = caster.cast(i);
                 Output.add(a);
 
 
@@ -43,7 +45,7 @@ public class BinaryParser < T > {
             doubleBuffer = buffer.asDoubleBuffer();
             double[] d = doubleBuffer.array();
             for (double i: d) {
-                T a = temp.cast(i);
+                T a = caster.cast(i);
                 Output.add(a);
 
             }

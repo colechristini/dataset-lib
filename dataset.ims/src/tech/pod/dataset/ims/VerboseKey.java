@@ -1,6 +1,6 @@
 import tech.pod.dataset.ims.IndexKey;
 
-//A VerboseKey is an immutable shortened version of an IndexKey used to replace an IndexKey flushed to disk
+//VerboseKey is an immutable shortened version of an IndexKey used to replace an IndexKey flushed to disk
 
 public class VerboseKey implements IndexKey{
     static final long serialVersionUID=(long)0L;
