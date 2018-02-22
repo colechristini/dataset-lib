@@ -2,12 +2,12 @@ package tech.pod.dataset.faas;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public class InvokeableWrapper<T> {
+public class InvokeableWrapper<R> {
     InvokeableFunction function;
     ConcurrentHashMap < String, Integer > keys = new ConcurrentHashMap < String, Integer > ();
-
-    InvokeableWrapper(InvokeableFunction
-        function, String startingKey) {
+    String type;
+    InvokeableWrapper(InvokeableFunction function, String startingKey,String type) {
+        this.type=type;
         this.function = function;
         keys.put(startingKey, 0);
     }
@@ -21,9 +21,11 @@ public class InvokeableWrapper<T> {
         return keys.get(key);
     }
     @SafeVarargs
-    public final T invoke(String key, T parameter, T... parameters) throws KeyNotAuthorizedException{
+    public final <T> List<R> invoke(String key, T parameter, T... parameters) throws KeyNotAuthorizedException{
         if(keys.containsKey(key)){
+            keys.replace(key, keys.get(key)+1);
             return function.invoke(parameter, parameters);
+
         }
         else{
             throw new KeyNotAuthorizedException(key);
