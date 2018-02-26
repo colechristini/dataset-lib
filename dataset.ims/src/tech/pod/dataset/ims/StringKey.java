@@ -12,50 +12,53 @@ It also supports a more intelligent duplicate check.
 */
 public class StringKey implements IndexKey, Comparable, Serializable {
     static final long serialVersionUID=0L;
-    Object[] list = new Object[15];
-    
-    StringKey(String title, String tags, BasicFileAttributes fileAttributes, String hashCode, Date importTime, int indexLoc,String filepath,ConcurrentHashMap wordOccurences) {
-        list[0] = title;
-        list[1] = tags;
+    ConcurrentHashMap<String,Object> parameters=new ConcurrentHashMap<String,Object>();
+    StringKey(Property title, Property tags, Property fileAttributes, Property hashCode, Property importTime, Property indexLoc,Property filepath,Property wordOccurences) {
+        parameters.put("title", title.getValue());
+        parameters.put("tags", tags.getValue());
         UUID uuid = UUID.randomUUID();
-        list[2] = (UUID)uuid;
-        list[3] = fileAttributes;
-        list[4] = hashCode;
-        list[5] = fileAttributes.creationTime();
-        list[6] = importTime;
-        list[7] = fileAttributes.lastAccessTime();
-        list[8] = 0;
-        list[9] = list[8] / (list[7].getTime() - list[6].getTime());
-        list[11] = 0;
-        list[12]=filepath;
-        list[13]=wordOccurences;
-        list[14]=Integer.toHexString(this.hashCode());
+        parameters.put("UUID", uuid);
+        parameters.put("fileAttributes", fileAttributes).getValue();
+        parameters.put("hashCode", hashCode.getValue());
+        parameters.put("creationTime", fileAttributes.getValue().creationTime());
+        parameters.put("importTime", importTime.getValue());
+        parameters.put("lastAccessTime", fileAttributes.getValue().lastAccessTime());
+        parameters.put("accessCount", 0);
+        parameters.put("accessAverage", parameters.get("accessCount")/parameters.get("lastAccessTime").getTime()-parameters.get("importTime").getTime);
+        parameters.put("locationTier", 0);
+        parameters.put("filePath", filepath.getValue());
+        parameters.put("wordOccurences", wordOccurences.getValue());
+        parameters.put("hexHash", Integer.toHexString(this.hashCode()));
     }
     @Override
     public int compareTo(StringKey i) {
-        list[9] = list[8] / list[7].getTime() - list[6].getTime();
-        if ((int) list[9] > i.getAccessAverage()) {
+        Date d=new Date();
+        long l=d.getTime();
+        long l2=(Date)parameters.get("importTime").getTime();
+        long aa= (long)parameters.get("accessCounter") /  l- l2;
+        parameters.replace("accessCounter",aa);
+        if ((int) parameters.get("accessCounter") > i.getAccessAverage()) {
             return 1;
-        } else if ((int) list[9] < i.getAccessAverage()) {
+        } else if ((int) parameters.get("accessCounter") < i.getAccessAverage()) {
             return 0;
-        } else if ((int) list[9] == i.getAccessAverage()) {
+        } else if ((int) parameters.get("accessCounter") == i.getAccessAverage()) {
             return 2;
         }
     }
     public String getTitle() {
 
-        return list[0];
+        return parameters.get("title");
     }
     public String getHashCode() {
-        return list[4];
+        return parameters.get("hashCode");
     }
 
     public UUID getUUID() {
-        UUID uuid=list[2];
+        UUID uuid=parameters.get("UUID");
         return uuid;
     }
     public String getTags() {
-        return list[1];
+        return parameters.get("tags");
     }
 
     public Object[] getAll() {
@@ -65,40 +68,42 @@ public class StringKey implements IndexKey, Comparable, Serializable {
        /* final DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
        // final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         Date d = new Date();
-        list[7] = sdf.format(d);*/
+        parameters.get("lastAccessTime") = sdf.format(d);*/
         // Should it update the last access time on duplicate check?
         this.update();
-        if (list[0] != i.getTitle() && list[4] != i.getHashCode() && list[2] != i.getUUID()) {
+        if (parameters.get("title") != i.getTitle() && parameters.get("hashCode") != i.getHashCode() && parameters.get("UUID") != i.getUUID()) {
             return 0;
-        } else if (list[0] == i.getTitle() && list[4] != i.getHashCode() && list[2] != i.getUUID()) {
+        } else if (parameters.get("title") == i.getTitle() && parameters.get("hashCode") != i.getHashCode() && parameters.get("UUID") != i.getUUID()) {
             return 1;
-        } else if (list[0] != i.getTitle() && list[4] == i.getHashCode() && list[2] != i.getUUID()) {
+        } else if (parameters.get("title") != i.getTitle() && parameters.get("hashCode") == i.getHashCode() && parameters.get("UUID") != i.getUUID()) {
             return 2;
-        } else if (list[0] == i.getTitle() && list[4] == i.getHashCode() && list[2] != i.getUUID()) {
+        } else if (parameters.get("title") == i.getTitle() && parameters.get("hashCode") == i.getHashCode() && parameters.get("UUID") != i.getUUID()) {
             return 3;
-        } else if (list[0] == i.getTitle() && list[4] == i.getHashCode() && list[2] == i.getUUID()) {
+        } else if (parameters.get("title") == i.getTitle() && parameters.get("hashCode") == i.getHashCode() && parameters.get("UUID") == i.getUUID()) {
             return 4;
         }
         return 5;
     }
     void incrementCounter() {
-        list[8]++;
-        list[7] = new Date();
+        int ac=(int)parameters.get("accessCounter")+1;
+        parameters.replace("accessCounter",ac);
+        parameters.replace("lastAccessTime", new Date());
     }
     public Date getLastAccessTime() {
-        return list[7];
+        return parameters.get("lastAccessTime");
     }
     public Date getCreationTime() {
-        return list[5];
+        return parameters.get("creationTime");
     }
     public int getAccessAverage() {
-        return list[9];
+        return parameters.get("accessCounter");
     }
     public void update() {
         Date d=new Date();
         long l=d.getTime();
-        long l2=(Date)list[6].getTime();
-        list[9] = (long)list[8] /  l- l2;
+        long l2=(Date)parameters.get("importTime").getTime();
+        long aa= (long)parameters.get("accessCounter") /  l- l2;
+        parameters.replace("accessCounter",aa);
     }
     public int getLocation() {
         return list[10];
@@ -109,30 +114,39 @@ public class StringKey implements IndexKey, Comparable, Serializable {
 
     }
     public void setLocationTier(int locationTier) {
-        list[11] = locationTier;
+        parameters.replace("locationTier",locationTier);
     }
     public int getLocationTier() {
-        return list[11];
+        return parameters.get("locationTier");
     }
    public void setTitle(String title) {
-        list[0] = title;
+        parameters.replace("title", title);
     }
     public String getPath(){
-        return list[12];
+        return parameters.get("filepath");
     }
     public void setPath(String path){
-        list[12]=path;
+        parameters.replace("filepath",path);
     }
 
     public Date getImportTime(){
-        return list[7];
+        return parameters.get("lastAccessTime");
     }
 
     public ConcurrentHashMap wordOccurences(){
-        return list[13];
+        return parameters.get("wordOccurences");
     }
 
     public String getKeyHash(){
-        return (String)list[14];
+        return (String)parameters.get("hexHash");
+    }
+    public Object getProperty(String property){
+        return parameters.get(property);
+    }
+    public<E> void addProperty(String name,E value ){
+        parameters.put(name, value);
+    }
+    public<E> void replaceProperty(String name, E value){
+        parameters.replace(name, value);
     }
 }

@@ -16,11 +16,11 @@ public class Property<T> {
             this.value=value;
         }
         else{
-            throw new UnsupportedOperationException;
+            throw new UnsupportedOperationException();
         }
     }
     public String getName(){
-        return name
+        return name;
     }
     public String getType(){
         return type;
