@@ -15,30 +15,13 @@ public class StringClassifier < IndexKey > implements ClassifierRule < IndexKey 
     public List < IndexKey > classify() {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher;
-        if (mode == "title") {
+    
             for (int i = 0; i < classifierOutput.length; i++) {
-                matcher = pattern.matcher(classifierOutput.get(i).getTitle());
+                matcher = pattern.matcher(classifierOutput.get(i).getProperty(mode));
                 if (matcher.find() == false) {
                     classifierOutput.remove(i);
                 }
             }
-        }
-       else if (mode == "tags") {
-            for (int i = 0; i < classifierOutput.length; i++) {
-                matcher = pattern.matcher(classifierOutput.get(i).getTags());
-                if (matcher.find() == false) {
-                    classifierOutput.remove(i);
-                }
-            }
-        }
-        else if (mode == "hashcode") {
-            for (int i = 0; i < classifierOutput.length; i++) {
-                matcher = pattern.matcher(classifierOutput.get(i).getHashCode());
-                if (matcher.find() == false) {
-                    classifierOutput.remove(i);
-                }
-            }
-        }
         return classifierOutput;
     }
 }

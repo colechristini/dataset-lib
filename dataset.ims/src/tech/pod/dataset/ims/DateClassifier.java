@@ -17,45 +17,22 @@ public class DateClassifier implements ClassifierRule<IndexKey>{
 
     public List < IndexKey > classify() {
             if (mode == "after") {
-                if (date == "lastAccess") {
+              
                     for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!classifierOutput.get(i).getLastAccessTime().after(check)) {
-                            classifierOutput.remove(i);
-                        }
-                    }
-                } else if (date == "import") {
-                    for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!classifierOutput.get(i).getImportTime().after(check)) {
-                            classifierOutput.remove(i);
-                        }
-                    }
-                } else if (date == "creation") {
-                    for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!classifierOutput.get(i).getCreationTime().after(check)) {
+                        if (!classifierOutput.get(i).getProperty(mode).after(check)) {
                             classifierOutput.remove(i);
                         }
                     }
                 }
-            } else if (mode == "before") {
-                if (date == "lastAccess") {
+             
+            else if (mode == "before") {
+               
                     for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!classifierOutput.get(i).getLastAccessTime().before(check)) {
+                        if (!classifierOutput.get(i).getProperty(mode).before(check)) {
                             classifierOutput.remove(i);
                         }
                     }
-                } else if (date == "import") {
-                    for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!classifierOutput.get(i).getImportTime().before(check)) {
-                            classifierOutput.remove(i);
-                        }
-                    }
-                } else if (date == "creation") {
-                    for (int i = 0; i < classifierOutput.length; i++) {
-                        if (!classifierOutput.get(i).getCreationTime().before(check)) {
-                            classifierOutput.remove(i);
-                        }
-                    }
-                }
+                
 
             }
             return classifierOutput;
