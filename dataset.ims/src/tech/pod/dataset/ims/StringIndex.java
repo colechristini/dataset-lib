@@ -21,6 +21,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.oracle.webservices.internal.api.message.PropertySet.Property;
+
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -30,7 +32,7 @@ import java.io.FileInputStream;
 import java.io.Serializable;
 
 import tech.pod.dataset.appserver.*;
-/*StringIndex is the reference Index implementation, including the entire feature set, 
+/*StringIndex is the reference Index implementation, containing the entire feature set, 
 including flushing rarely-used keys to disk and a smarter duplicate check that can intelligently combine or delete keys.
 The search system is based on an ArrayList of SearchAgents that, each passed a single '|'(or) clause of the query.
 Besides basic get, remove, and put methods, it can also replace a key, or the content of a string in the store, along with removing a String from the store.
@@ -325,9 +327,8 @@ public class StringIndex implements Index, Serializable{
     public ArrayList<IndexKey> deepClone(){
         ArrayList<IndexKey> keys=new ArrayList<IndexKey>();
         for(int i=0;IndexKeyStore.size();i++){
-            if(IndexKeyStore.get(i) instanceof IndexKey){
-                keys.add((IndexKey)IndexKeyStore.get
-                (i));
+            if(IndexKeyStore.get(i) instanceof StringKey){
+                keys.add((IndexKey)IndexKeyStore.get(i));
             }
             else if(IndexKeyStore.get(i) instanceof VerboseKey){
                 VerboseKey key=(VerboseKey)IndexKeyStore.get(i);
@@ -352,4 +353,17 @@ public class StringIndex implements Index, Serializable{
         
         return stats;
     }
+    public void addProperty(String propertyName, ArrayList<Property> propertyValues){
+        try{
+        for(int i=0;i<IndexKeyStore.size();i++){
+            StringKey k=IndexKeyStore.get(i);
+            k.addProperty(propertyName, propertyValues.get(i));
+            IndexKeyStore.set(i, k);
+            }
+        }
+    
+    catch(IndexOutOfBoundsException i){
+       //TODO: handle exception
+        }
+    }      
 }
