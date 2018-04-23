@@ -19,32 +19,35 @@ public class SearchAgent {
     }
     public List < IndexKey > search() {
             DateFormat format = new SimpleDateFormat("   yyyy.MM.dd  HH:mm:ss z", Locale.ENGLISH);
-            if (searchGroup.get(0).get(0).indexOf("any") == -1) {//from:date
+            
                 List < DateClassifier > dateClassifiers = new ArrayList < DateClassifier > ();
                 for (int i = 0; i < searchGroup.get(0).length; i++) {
+                    if (searchGroup.get(0).get(i).indexOf("any") == -1) {//from:date
                     dateClassifiers.add(new DateClassifier(format.parse(searchGroup.get(0).get(i).split("-")[1]), "after", searchGroup.get(0).get(i).split("-")[0], searchOutput)); //need to format first parameter
                     searchOutput = dateClassifiers.get(i).classify();
                 }
             }
-            if (searchGroup.get(1).get(0).indexOf("any") == -1) {// to:date
-                List < DateClassifier > dateClassifiers = new ArrayList < DateClassifier > ();
+            
+                List < DateClassifier > dateClassifiers2 = new ArrayList < DateClassifier > ();
                 for (int i = 0; i < searchGroup.get(1).length; i++) {
-                    dateClassifiers.add(new DateClassifier(format.parse(searchGroup.get(1).get(i).split("-")[1]), "after", searchGroup.get(1).get(i).split("-")[0], searchOutput)); //need to format first parameter
+                    if (searchGroup.get(1).get(i).indexOf("any") == -1) {// to:date
+                    dateClassifiers2.add(new DateClassifier(format.parse(searchGroup.get(1).get(i).split("-")[1]), "after", searchGroup.get(1).get(i).split("-")[0], searchOutput)); //need to format first parameter
                     searchOutput = dateClassifiers.get(i).classify();
                 }
             }
-            if (searchGroup.get(2).get(0).indexOf("any") == -1) {//regexes
                 List < StringClassifier > stringClassifiers = new ArrayList < StringClassifier > ();
-                for (int i = 0; i < searchGroup.get(1).length; i++) {
+                for (int i = 0; i < searchGroup.get(2).length; i++) {
+                    if (searchGroup.get(2).get(i).indexOf("any") == -1) {//regexes
                     stringClassifiers.add(new StringClassifier(searchGroup.get(1).get(i).split("-")[1], searchGroup.get(1).get(i).split("-")[0], searchOutput));
                     searchOutput = stringClassifiers.get(i).classify();
                 }
             }
 
-            if (searchGroup.get(3).get(0).indexOf("any") == -1) {//word histogram classifier
+           
                 List < String > wordKeys = new ArrayList < String > ();
                 HashMap < String, Integer > wordClassifiers = new HashMap < String, Integer > ();
-                for (int i = 0; i < searchOutput.get(3).length; i++) {
+                for (int i = 0; i < searchOutput.get(0).length; i++) {//only one list
+                    if (searchGroup.get(3).get(i).indexOf("any") == -1) {//word histogram classifier
                     String s = (String) searchOutput.get(4).get(i);
                     wordKeys.add(s.split("-")[0]);
                     wordClassifiers.put(s.split("-")[0], (Integer) s.split("-")[0]);
