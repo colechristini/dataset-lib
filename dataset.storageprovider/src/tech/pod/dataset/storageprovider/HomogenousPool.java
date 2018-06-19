@@ -13,6 +13,9 @@ public class HomogenousPool implements StoragePool {
     public String get(int stripe) {
         return storageDaemons.get(get(i));
     }
+    public SocketAddress getDaemonCommandAddress(int stripe){
+        return storageDaemonsCommandAddressses.get(stripe).get(replicationLayers.get(stripe));
+    }
     public void addStripe(String[] stripeDisks, int tier) {
     throw new UnsupportedOperationException();
     }

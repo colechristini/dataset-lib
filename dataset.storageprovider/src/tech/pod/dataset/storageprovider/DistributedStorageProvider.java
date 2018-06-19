@@ -87,7 +87,7 @@ public class DistributedStorageProvider implements StorageProvider {
                     s=new Socket(storagePools.get(i).get(a),port);
                     PrintWriter writer=new PrintWriter(s.getOutputStream(), true);
                     writer.write("ping");
-                    ExecutorService service=Executors.newSingleThreadExecutor();
+                    ScheduledExecutorService service=Executors.newSingleThreadExecutor();
                     ScheduledFuture f=service.submit(reciever);
                 }
             }
@@ -105,6 +105,6 @@ public class DistributedStorageProvider implements StorageProvider {
     }
 
     public void remove(Object[] o) {
-
+        
     }
 }
