@@ -30,6 +30,7 @@ public class StorageDaemon{
     InetSocketAddress commandIP;
     int defaultBufferSize;
     String saveLocation;
+    boolean running=false;
     StorageDaemon(boolean isActive,InetSocketAddress daemonIP,InetSocketAddress commandIP,int defaultBufferSize,String saveLocation){
         this.isActive=isActive;
         this.daemonIP=daemonIP;
@@ -39,12 +40,19 @@ public class StorageDaemon{
     }
     public void start(){
         command.bind(commandIP);
+        running=true;
+    }
+    public void pause(){
+        running=false;
+    }
+    public void unpause(){
+        running=true;
     }
     public void recieve(){
-        Runnable reciever=()->{
-            PrintWriter out=new PrintWriter(command.getOutputStream(),true);
-            String commandString=out.toString();
-            if(commandString){
+        PrintWriter out=new PrintWriter(command.getOutputStream(),true);
+        String commands=out.toString();
+        Runnable recieve=()->{
+            String commandString=commands;
                 if(commandString==get){
                     String[] components=commandString.split(":");
                     RandomAccessFile file=new RandomAccessFile(fileNames.get(components[1]),"r");
@@ -83,10 +91,12 @@ public class StorageDaemon{
                         }
                     }
                 }
-            }
         };
-        Runnable stripeReciever=()->{
-            
-        };
+       while(running){
+           if(commands){
+            ExecutorService executorService=Executors.newSingleThreadExecutor();
+            executorService.execute(recieve);
+           }
+       }
     }
 }
