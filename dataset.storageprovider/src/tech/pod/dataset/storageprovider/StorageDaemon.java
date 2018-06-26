@@ -6,6 +6,7 @@ import java.nio.channels.SocketChannel;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ public class StorageDaemon{
     ConcurrentHashMap<String,Integer> fileSizes=new ConcurrentHashMap<String,Integer>();
     boolean isActive;
     InetSocketAddress daemonIP;
-    Socket command=Socket.open();
+    ServerSocket command=Socket.open();
     InetSocketAddress commandIP;
     int defaultBufferSize;
     String saveLocation;
@@ -49,9 +50,10 @@ public class StorageDaemon{
         running=true;
     }
     public void recieve(){
-        PrintWriter out=new PrintWriter(command.getOutputStream(),true);
-        String commands=out.toString();
+        List<Socket> sockets=new ArrayList<Socket>();
         Runnable recieve=()->{
+            PrintWriter out=new PrintWriter(sockets.get(sockets.size()-1).getOutputStream(),true);
+            String commands=out.toString();
             String commandString=commands;
                 if(commandString==get){
                     String[] components=commandString.split(":");
@@ -93,7 +95,9 @@ public class StorageDaemon{
                 }
         };
        while(running){
-           if(commands){
+        Socket socket=command.accept();
+        sockets.add(socket);
+           if(socket!=null){
             ExecutorService executorService=Executors.newSingleThreadExecutor();
             executorService.execute(recieve);
            }

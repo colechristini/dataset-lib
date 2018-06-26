@@ -3,6 +3,8 @@ package tech.pod.dataset.storageprovider;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,8 +22,10 @@ import tech.pod.dataset.appserver.*;
 public class DistributedStorageProvider implements StorageProvider {
     ConcurrentHashMap < String, Boolean > heartbeatMap = new ConcurrentHashMap < String, Boolean > ();
     List < StoragePool > storagePools = new ArrayList < StoragePool > ();
-
-    DistributedStorageProvider(){}
+    String ip;
+    DistributedStorageProvider(String ip){
+        this.ip=ip;
+    }
 
     public void addPool(String mode){
         if(mode=="homogenous"){
@@ -95,7 +99,12 @@ public class DistributedStorageProvider implements StorageProvider {
         ScheduledExecutorService service=Executors.newScheduledThreadPool(1);
         ScheduledFuture future=service.scheduleWithFixedDelay(heartbeat, heartbeatTimer, heartbeatTimer, unit);
     }
+    public void recieve(String port){
+        ServerSocket command=new Socket(new InetSocketAddress(InetAddress.getByName(ip), 9999));
+        Runnable recieve=()->{
 
+        };
+    }
     public void put(Object[] o) {
         
     }
