@@ -22,6 +22,7 @@ import tech.pod.dataset.appserver.*;
 public class DistributedStorageProvider implements StorageProvider {
     ConcurrentHashMap < String, Boolean > heartbeatMap = new ConcurrentHashMap < String, Boolean > ();
     List < StoragePool > storagePools = new ArrayList < StoragePool > ();
+    ConcurrentHashMap < String, StorageKey > files = new  ConcurrentHashMap < String, StorageKey > ();
     String ip;
     DistributedStorageProvider(String ip){
         this.ip=ip;
