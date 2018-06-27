@@ -1,4 +1,5 @@
 package tech.pod.dataset.storageprovider;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -34,14 +35,84 @@ public class S3Provider implements StorageProvider {
     boolean acceptingConnections;
     String bucketName;
     String tempPath;
-    S3Provider(Object[] params) {
-        if (params.length !=3) {
-            throw new UnsupportedOperationException();
-        } else {
-            this.bucketName = params[0].toString();
-            this.maxAgents = (int)params[1];
-            tempPath=params[2].toString();
-        }
+    InetSocketAddress daemonIP;
+    ServerSocket command=Socket.open();
+    InetSocketAddress commandIP;
+    int defaultBufferSize;
+    String saveLocation;
+    boolean running=false;
+    S3Provider(String bucketName, String saveLocation,boolean isActive,InetSocketAddress daemonIP,InetSocketAddress commandIP,int defaultBufferSize) {
+            this.bucketName = bucketName;
+            this.saveLocation=saveLocation;
+            this.isActive=isActive;
+            this.daemonIP=daemonIP;
+            this.commandIP=commandIP;
+            this.defaultBufferSize=defaultBufferSize;
+            this.saveLocation=saveLocation;
+    }
+    public void start(){
+        command.bind(commandIP);
+        running=true;
+    }
+    public void pause(){
+        running=false;
+    }
+    public void unpause(){
+        running=true;
+    }
+    public void recieve(){
+        List<Socket> sockets=new ArrayList<Socket>();
+        ExecutorService executorService=Executors.newCachedThreadPool();
+        Runnable recieve=()->{
+            PrintWriter out=new PrintWriter(sockets.get(sockets.size()-1).getOutputStream(),true);
+            String commands=out.toString();
+            String commandString=commands;
+                if(commandString==get){
+                    String[] components=commandString.split(":");
+                    RandomAccessFile file=new RandomAccessFile(fileNames.get(components[1]),"r");
+                    ByteBuffer buffer=ByteBuffer.allocate(fileSizes.get(components[1]));
+                    FileChannel fileChannel=file.getChannel();
+                    int bytesRead=fileChannel.read(bb);
+                    buffer.flip();
+                    InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[2]));
+                    SocketChannel socket=SocketChannel.open();
+                    socket.bind(daemonIP);
+                    socket.connect(remote);
+                    socket.finishConnect();
+                    socket.write(buffer);
+                }
+                else if(commandString==write){
+                    String[] components=commandString.split(":");
+                    RandomAccessFile file=new RandomAccessFile(saveLocation="/"+components[2]+".dtrec","w");
+                    fileLocs.put(components[1], components[2]);
+                    ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);
+                    InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[3]));
+                    SocketChannel socket=SocketChannel.open();
+                    socket.bind(daemonIP);
+                    socket.connect(remote);
+                    socket.read(buffer);
+                    buffer.flip(); 
+                    FileChannel channel=file.getChannel();
+                    channel.write(buffer);
+                    if(isActive){
+                        for(int i=1;i<stripeIps.size();i++){
+                            Socket commandSenderSocket=new Socket(stripeIPs.get(i),10000);
+                            OutputStream stream=commandSenderSocket.getOutputStream();
+                            PrintWriter writer=new PrintWriter(stream);
+                            writer.write(commandString);
+                            socket.connect(stripeIPs.get(i));
+                            socket.write(buffer);
+                        }
+                    }
+                }
+        };
+       while(running){
+        Socket socket=command.accept();
+        sockets.add(socket);
+           if(socket!=null){
+            executorService.execute(recieve);
+           }
+       }
     }
     public void remove(Object[] params) {
         AmazonS3 s3client = new AmazonS3Client(new ProfileCredentialsProvider());
@@ -67,10 +138,10 @@ public class S3Provider implements StorageProvider {
         }
 
     }
-    public Object get(Object[] params) {
+    public Object get(String file) {
         AmazonS3 s3Client = new AmazonS3Client(new ProfileCredentialsProvider());
         try {
-            S3Object object = s3Client.getObject(new GetObjectRequest(bucketName, params[0].toString()));
+            S3Object object = s3Client.getObject(new GetObjectRequest(bucketName, file));
             InputStream objectData = object.getObjectContent();
             byte[] bytes = IOUtils.toByteArray(is);
             ByteBuffer b = ByteBuffer.wrap(bytes);
@@ -95,9 +166,9 @@ public class S3Provider implements StorageProvider {
         }
 
     }
-    public void put(Object[] params) {
-        String key = params[0].toString();
-        File file = new File(params[0].toString());
+    public void write(String fileKey, File f) {
+        String key = fileKey;
+        File file = f;
         AmazonS3 s3client = new AmazonS3Client(new ProfileCredentialsProvider());
         try {
             s3client.putObject(new PutObjectRequest(bucketName, key, file));

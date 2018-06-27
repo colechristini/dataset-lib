@@ -51,12 +51,13 @@ public class StorageDaemon{
     }
     public void recieve(){
         List<Socket> sockets=new ArrayList<Socket>();
+        ExecutorService executorService=Executors.newCachedThreadPool();
         Runnable recieve=()->{
             PrintWriter out=new PrintWriter(sockets.get(sockets.size()-1).getOutputStream(),true);
             String commands=out.toString();
             String commandString=commands;
                 if(commandString==get){
-                    String[] components=commandString.split(":");
+                    String[] components=commandString.split(":");//[1] is key,2 is file name
                     RandomAccessFile file=new RandomAccessFile(fileNames.get(components[1]),"r");
                     ByteBuffer buffer=ByteBuffer.allocate(fileSizes.get(components[1]));
                     FileChannel fileChannel=file.getChannel();
@@ -71,7 +72,7 @@ public class StorageDaemon{
                 }
                 else if(commandString==write){
                     String[] components=commandString.split(":");
-                    RandomAccessFile file=new RandomAccessFile(saveLocation="/"+components[2],"w");
+                    RandomAccessFile file=new RandomAccessFile(saveLocation="/"+components[2]+".dtrec","w");
                     fileLocs.put(components[1], components[2]);
                     ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);
                     InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[3]));
@@ -82,6 +83,7 @@ public class StorageDaemon{
                     buffer.flip(); 
                     FileChannel channel=file.getChannel();
                     channel.write(buffer);
+                    fileSizes.put(key, buffer.position());
                     if(isActive){
                         for(int i=1;i<stripeIps.size();i++){
                             Socket commandSenderSocket=new Socket(stripeIPs.get(i),10000);
@@ -98,7 +100,7 @@ public class StorageDaemon{
         Socket socket=command.accept();
         sockets.add(socket);
            if(socket!=null){
-            ExecutorService executorService=Executors.newSingleThreadExecutor();
+
             executorService.execute(recieve);
            }
        }
