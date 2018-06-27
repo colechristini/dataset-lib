@@ -187,7 +187,6 @@ public class S3Provider implements StorageProvider {
     }
     public void write(String fileKey, InputStream stream,ObjectMetadata metadata) {
         String key = fileKey;
-        File file = f;
         AmazonS3 s3client = new AmazonS3Client(new ProfileCredentialsProvider());
         try {
             s3client.putObject(new PutObjectRequest(bucketName, key,stream,metadata ));
