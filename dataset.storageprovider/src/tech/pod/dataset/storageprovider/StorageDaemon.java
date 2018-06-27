@@ -23,8 +23,8 @@ import java.util.concurrent.TimeUnit;
 //StorageDaemons run on individual servers, managing the files on the server and replicationg them to all servers within the stripe.
 public class StorageDaemon{
     ArrayList<Integer,InetAddress> stripeIPs=new ArrayList<Integer,Integer>();
-    ConcurrentHashMap<String,String> fileLocs=new ConcurrentHashMap<String,String>();
     ConcurrentHashMap<String,Integer> fileSizes=new ConcurrentHashMap<String,Integer>();
+    ConcurrentHashMap<String,String> authCodes=new ConcurrentHashMap<String, String>();
     boolean isActive;
     InetSocketAddress daemonIP;
     ServerSocket command=Socket.open();
@@ -56,24 +56,28 @@ public class StorageDaemon{
             PrintWriter out=new PrintWriter(sockets.get(sockets.size()-1).getOutputStream(),true);
             String commands=out.toString();
             String commandString=commands;
-                if(commandString==get){
-                    String[] components=commandString.split(":");//[1] is key,2 is file name
-                    RandomAccessFile file=new RandomAccessFile(fileNames.get(components[1]),"r");
-                    ByteBuffer buffer=ByteBuffer.allocate(fileSizes.get(components[1]));
-                    FileChannel fileChannel=file.getChannel();
-                    int bytesRead=fileChannel.read(bb);
-                    buffer.flip();
-                    InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[2]));
-                    SocketChannel socket=SocketChannel.open();
-                    socket.bind(daemonIP);
-                    socket.connect(remote);
-                    socket.finishConnect();
-                    socket.write(buffer);
+            String[] components=commandString.split(":");//0 is name,1 is authKey
+                if(commandString.contains("get")){
+                    if(Integer.toHexString(components[1].hashCode())==authCodes.get(components[0])){
+                        RandomAccessFile file=new RandomAccessFile(fileNames.get(components[0]),"r");
+                        ByteBuffer buffer=ByteBuffer.allocate(fileSizes.get(components[0]));
+                        FileChannel fileChannel=file.getChannel();
+                        int bytesRead=fileChannel.read(bb);
+                        buffer.flip();
+                        InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[2]));
+                        SocketChannel socket=SocketChannel.open();
+                        socket.bind(daemonIP);
+                        socket.connect(remote);
+                        socket.finishConnect();
+                        socket.write(buffer);
+                    }
+                    else{
+                        return;
+                    }
                 }
-                else if(commandString==write){
-                    String[] components=commandString.split(":");
-                    RandomAccessFile file=new RandomAccessFile(saveLocation="/"+components[2]+".dtrec","w");
-                    fileLocs.put(components[1], components[2]);
+                else if(commandString.contains("write")){
+                    RandomAccessFile file=new RandomAccessFile(saveLocation="/"+components[0]+".dtrec","w");
+                    authCodes.add(Integer.toHexString(components[1].hashCode()));
                     ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);
                     InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[3]));
                     SocketChannel socket=SocketChannel.open();

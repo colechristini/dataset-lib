@@ -1,6 +1,7 @@
 package tech.pod.dataset.storageprovider;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +18,19 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
+import java.nio.*;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SocketChannel;
+import java.io.PrintWriter;
+import java.io.RandomAccessFile;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 import org.apache.commons.io;
 
@@ -28,7 +42,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
-
+import com.amazonaws.services.s3.model.ObjectMetadata;
 //S3Provider acts as a basic StorageProvider, uploading, getting, and removing objects from Amazon AWS S3
 
 public class S3Provider implements StorageProvider {
@@ -41,6 +55,7 @@ public class S3Provider implements StorageProvider {
     int defaultBufferSize;
     String saveLocation;
     boolean running=false;
+    ConcurrentHashMap<String,String> authCodes=new ConcurrentHashMap<String, String>();
     S3Provider(String bucketName, String saveLocation,boolean isActive,InetSocketAddress daemonIP,InetSocketAddress commandIP,int defaultBufferSize) {
             this.bucketName = bucketName;
             this.saveLocation=saveLocation;
@@ -67,42 +82,46 @@ public class S3Provider implements StorageProvider {
             PrintWriter out=new PrintWriter(sockets.get(sockets.size()-1).getOutputStream(),true);
             String commands=out.toString();
             String commandString=commands;
-                if(commandString==get){
-                    String[] components=commandString.split(":");
-                    RandomAccessFile file=new RandomAccessFile(fileNames.get(components[1]),"r");
-                    ByteBuffer buffer=ByteBuffer.allocate(fileSizes.get(components[1]));
-                    FileChannel fileChannel=file.getChannel();
-                    int bytesRead=fileChannel.read(bb);
-                    buffer.flip();
-                    InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[2]));
-                    SocketChannel socket=SocketChannel.open();
-                    socket.bind(daemonIP);
-                    socket.connect(remote);
-                    socket.finishConnect();
-                    socket.write(buffer);
+            String[] components=commandString.split(":");//0 is name,1 is authKey
+                if(commandString.contains("get")){
+                    if(Integer.toHexString(components[1].hashCode())==authCodes.get(components[0])){
+                        ByteBuffer buffer=get(components[0]);
+                        FileChannel fileChannel=file.getChannel();
+                        int bytesRead=fileChannel.read(bb);
+                        buffer.flip();
+                        InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[2]));
+                        SocketChannel socket=SocketChannel.open();
+                        socket.bind(daemonIP);
+                        socket.connect(remote);
+                        socket.finishConnect();
+                        socket.write(buffer);
+                    }
+                    else{
+                        return;
+                    }
                 }
-                else if(commandString==write){
-                    String[] components=commandString.split(":");
-                    RandomAccessFile file=new RandomAccessFile(saveLocation="/"+components[2]+".dtrec","w");
+                else if(commandString.contains("write")){
                     fileLocs.put(components[1], components[2]);
+                    authCodes.add(Integer.toHexString(components[1].hashCode()));
                     ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);
                     InetSocketAddress remote=new InetSocketAddress(InetAddress.getByName(components[3]));
                     SocketChannel socket=SocketChannel.open();
                     socket.bind(daemonIP);
                     socket.connect(remote);
                     socket.read(buffer);
-                    buffer.flip(); 
-                    FileChannel channel=file.getChannel();
-                    channel.write(buffer);
-                    if(isActive){
-                        for(int i=1;i<stripeIps.size();i++){
-                            Socket commandSenderSocket=new Socket(stripeIPs.get(i),10000);
-                            OutputStream stream=commandSenderSocket.getOutputStream();
-                            PrintWriter writer=new PrintWriter(stream);
-                            writer.write(commandString);
-                            socket.connect(stripeIPs.get(i));
-                            socket.write(buffer);
-                        }
+                    byte[] fileBytes=buffer.array();
+                    InputStream stream=new ByteArrayInputStream(buf);
+                    ObjectMetadata metadata= new ObjectMetatada();
+                    metadata.setContentType("text/plain");
+                    metadata.setContentLength(fileBytes.length);
+                    write(bucketName, components[1], stream, metadata);
+                }
+                else if(commands.contains("remove")){
+                    if(Integer.toHexString(components[1].hashCode())==authCodes.get(components[0])){
+                        remove(name);
+                    }
+                    else{
+                        return;
                     }
                 }
         };
@@ -114,7 +133,7 @@ public class S3Provider implements StorageProvider {
            }
        }
     }
-    public void remove(Object[] params) {
+    public void remove(String name) {
         AmazonS3 s3client = new AmazonS3Client(new ProfileCredentialsProvider());
         try {
             s3client.deleteObject(new DeleteObjectRequest(bucketName, params[0].toString()));
@@ -166,12 +185,12 @@ public class S3Provider implements StorageProvider {
         }
 
     }
-    public void write(String fileKey, File f) {
+    public void write(String fileKey, InputStream stream,ObjectMetadata metadata) {
         String key = fileKey;
         File file = f;
         AmazonS3 s3client = new AmazonS3Client(new ProfileCredentialsProvider());
         try {
-            s3client.putObject(new PutObjectRequest(bucketName, key, file));
+            s3client.putObject(new PutObjectRequest(bucketName, key,stream,metadata ));
         } catch (AmazonServiceException ase) {
             System.out.println("Caught an AmazonServiceException, which " +
                 "means your request made it " +
