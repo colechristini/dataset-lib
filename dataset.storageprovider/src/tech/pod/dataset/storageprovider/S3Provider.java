@@ -129,8 +129,21 @@ public class S3Provider implements StorageProvider {
                 socket.bind(daemonIP);
                 socket.connect(remote);
                 socket.read(buffer);
-                byte[] fileBytes = buffer.array();
-                InputStream stream = new ByteArrayInputStream(buf);
+                /****************************************************************************/
+                //This section verifies whether the recieved data is the data associated with the right sender
+                byte[] data = buffer.array();
+                buffer.clear();
+                byte b = data[0];
+                Byte bt=b;
+                datamap.put(bt.toString(), Arrays.copyOfRange(data, token.length, data.length-1));
+                //remember to try and optimize with partial ByteBuffer conversions
+                Byte[] bytes = datamap.get(token);
+                byte[] bytesToBuffer = new byte[bytes.length];
+                for(int i=0; i<bytes.length ;i++){
+                    bytesToBuffer[i]=bytes[i].byteValue();
+                }
+                /****************************************************************************/
+                InputStream stream = new ByteArrayInputStream(bytesToBuffer);
                 ObjectMetadata metadata = new ObjectMetatada();
                 metadata.setContentType("text/plain");
                 metadata.setContentLength(fileBytes.length);

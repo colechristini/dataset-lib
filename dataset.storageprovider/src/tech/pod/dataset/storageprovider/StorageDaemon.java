@@ -10,6 +10,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +62,7 @@ public class StorageDaemon {
     }
 
     public void recieve() {
+        ConcurrentHashMap < String, Byte[] > datamap = new ConcurrentHashMap < String, Byte[] > ();
         ThreadPoolExecutor executorService = Executors.newCachedThreadPool();
         Runnable recieve = () -> {
             final Thread currentThread = Thread.currentThread();
@@ -106,12 +108,30 @@ public class StorageDaemon {
             } else if (commandString.contains("write")) {
                 RandomAccessFile file = new RandomAccessFile(tierLocations[components[1]] = "/" + components[0] + ".dtrec", "w");
                 authCodes.add(Integer.toHexString(components[2].hashCode()));
+                String token=components[3];
+                /****************************************************************************/
+                //This section recieves the actual data from the client
                 ByteBuffer buffer = ByteBuffer.allocate(defaultBufferSize);
                 InetSocketAddress remote = new InetSocketAddress(InetAddress.getByName(components[3]));
                 SocketChannel socket = SocketChannel.open();
                 socket.bind(daemonIP);
                 socket.connect(remote);
                 socket.read(buffer);
+                /****************************************************************************/
+                //This section verifies whether the recieved data is the data associated with the right sender
+                byte[] data = buffer.array();
+                buffer.clear();
+                byte b = data[0];
+                Byte bt=b;
+                datamap.put(bt.toString(), Arrays.copyOfRange(data, token.length, data.length-1));
+                //remember to try and optimize with partial ByteBuffer conversions
+                Byte[] bytes = datamap.get(token);
+                byte[] bytesToBuffer = new byte[bytes.length];
+                for(int i=0; i<bytes.length ;i++){
+                    bytesToBuffer[i]=bytes[i].byteValue();
+                }
+                buffer=ByteBuffer.wrap(bytesToBuffer);
+                /****************************************************************************/
                 buffer.flip();
                 FileChannel channel = file.getChannel();
                 channel.write(buffer);
