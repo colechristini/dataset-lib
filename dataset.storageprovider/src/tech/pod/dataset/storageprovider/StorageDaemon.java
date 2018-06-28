@@ -63,6 +63,26 @@ public class StorageDaemon {
     public void recieve() {
         ThreadPoolExecutor executorService = Executors.newCachedThreadPool();
         Runnable recieve = () -> {
+            final Thread currentThread = Thread.currentThread();
+            Runnable priority = () -> {
+                int counter;
+                Thread t = Thread.currentThread();
+                t.setPriority(1);
+                while(true){
+                    counter++;
+                     if(counter==30){
+                        currentThread.setPriority(7);
+                    }
+                    else if(counter==60){
+                        currentThread.setPriority(10);
+                        t.interrupt();
+                        return;
+                    }
+                    t=Thread.sleep(1000);
+                }
+            };
+            ExecutorService service = Executors.newSingleThreadExecutor();
+            service.execute(priority);
             PrintWriter out = new PrintWriter(socketQueue.poll().getOutputStream(), true);
             String commands = out.toString();
             String commandString = commands;
