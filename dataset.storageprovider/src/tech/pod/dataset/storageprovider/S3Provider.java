@@ -46,7 +46,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 //S3Provider acts as a basic StorageProvider, uploading, getting, and removing objects from Amazon AWS S3
 
 public class S3Provider implements StorageProvider {
-    boolean acceptingConnections;
+    int maxActiveThreads;
     String bucketName;
     String tempPath;
     InetSocketAddress daemonIP;
@@ -54,38 +54,35 @@ public class S3Provider implements StorageProvider {
     InetSocketAddress commandIP;
     int defaultBufferSize;
     String saveLocation;
-    boolean running = false;
-    ConcurrentHashMap<String, String> authCodes = new ConcurrentHashMap<String, String>();
-
-    S3Provider(String bucketName, String saveLocation, boolean isActive, InetSocketAddress daemonIP,
-            InetSocketAddress commandIP, int defaultBufferSize) {
+    boolean active = false;
+    ConcurrentHashMap < String, String > authCodes = new ConcurrentHashMap < String, String > ();
+    ConcurrentLinkedDeque < Socket > socketQueue = new ConcurrentLinkedDeque<Socket>();
+    S3Provider(String bucketName, InetSocketAddress daemonIP, InetSocketAddress commandIP, int defaultBufferSize, int maxActiveThreads) {
         this.bucketName = bucketName;
-        this.saveLocation = saveLocation;
-        this.isActive = isActive;
         this.daemonIP = daemonIP;
         this.commandIP = commandIP;
         this.defaultBufferSize = defaultBufferSize;
-        this.saveLocation = saveLocation;
+        this.maxActiveThreads=maxActiveThreads;
     }
 
     public void start() {
         command.bind(commandIP);
-        running = true;
+        active = true;
     }
 
     public void pause() {
-        running = false;
+        active = false;
     }
 
     public void unpause() {
-        running = true;
+        active = true;
     }
 
     public void recieve() {
-        List<Socket> sockets = new ArrayList<Socket>();
-        ExecutorService executorService = Executors.newCachedThreadPool();
+        List<Socket> sockets = new ArrayList < Socket > ();
+        ThreadPoolExecutor executorService = Executors.newCachedThreadPool();
         Runnable recieve = () -> {
-            PrintWriter out = new PrintWriter(sockets.get(sockets.size() - 1).getOutputStream(), true);
+            PrintWriter out = new PrintWriter(socketQueue.poll().getOutputStream(), true);
             String commands = out.toString();
             String commandString = commands;
             String[] components = commandString.split(":");// 0 is name,1 is authKey
@@ -126,11 +123,16 @@ public class S3Provider implements StorageProvider {
                 }
             }
         };
-        while (running) {
+        while (active) {
             Socket socket = command.accept();
-            sockets.add(socket);
             if (socket != null) {
+                socketQueue.add(socket);
+            }
+            if(socketQueue.length!=0&&executorService.getActiveCount()<maxActiveThreads){
                 executorService.execute(recieve);
+            }
+            else{
+                continue;
             }
         }
     }

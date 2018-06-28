@@ -14,51 +14,56 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 //StorageDaemons run on individual servers, managing the files on the server and replicationg them to all servers within the stripe.
 public class StorageDaemon {
-    ArrayList<Integer, InetAddress> stripeIPs = new ArrayList<Integer, Integer>();
-    ConcurrentHashMap<String, Integer> fileSizes = new ConcurrentHashMap<String, Integer>();
-    ConcurrentHashMap<String, String> authCodes = new ConcurrentHashMap<String, String>();
+    int maxActiveThreads;
+    ArrayList < Integer, InetAddress > stripeIPs = new ArrayList<Integer, Integer>();
+    ConcurrentHashMap < String, Integer > fileSizes = new ConcurrentHashMap<String, Integer>();
+    ConcurrentHashMap < String, String > authCodes = new ConcurrentHashMap<String, String>();
+    ConcurrentLinkedDeque < Socket > socketQueue = new ConcurrentLinkedDeque<Socket>();
     boolean isActive;
     InetSocketAddress daemonIP;
     ServerSocket command = Socket.open();
     InetSocketAddress commandIP;
     int defaultBufferSize;
-    boolean running = false;
+    boolean active = false;
     String[] tierLocations;
-    StorageDaemon(boolean isActive, InetSocketAddress daemonIP, InetSocketAddress commandIP, int defaultBufferSize, String[] tierLocations) {
+
+    StorageDaemon(boolean isActive, InetSocketAddress daemonIP, InetSocketAddress commandIP, int defaultBufferSize, String[] tierLocations, int maxActiveThreads) {
         this.isActive = isActive;
         this.daemonIP = daemonIP;
         this.commandIP = commandIP;
         this.defaultBufferSize = defaultBufferSize;
         this.tierLocations = tierLocations;
+        this.maxActiveThreads=maxActiveThreads;
     }
 
     public void start() {
         command.bind(commandIP);
-        running = true;
+        active = true;
     }
 
     public void pause() {
-        running = false;
+        active = false;
     }
 
     public void unpause() {
-        running = true;
+        active = true;
     }
 
     public void recieve() {
-        List<Socket> sockets = new ArrayList<Socket>();
-        ExecutorService executorService = Executors.newCachedThreadPool();
+        ThreadPoolExecutor executorService = Executors.newCachedThreadPool();
         Runnable recieve = () -> {
-            PrintWriter out = new PrintWriter(sockets.get(sockets.size() - 1).getOutputStream(), true);
+            PrintWriter out = new PrintWriter(socketQueue.poll().getOutputStream(), true);
             String commands = out.toString();
             String commandString = commands;
             String[] components = commandString.split(":");// 0 is name,1 is authKey
@@ -103,11 +108,16 @@ public class StorageDaemon {
                 }
             }
         };
-        while (running) {
+        while (active) {
             Socket socket = command.accept();
-            sockets.add(socket);
             if (socket != null) {
+                socketQueue.add(socket);
+            }
+            if(socketQueue.length!=0&&executorService.getActiveCount()<maxActiveThreads){
                 executorService.execute(recieve);
+            }
+            else{
+                continue;
             }
         }
     }
