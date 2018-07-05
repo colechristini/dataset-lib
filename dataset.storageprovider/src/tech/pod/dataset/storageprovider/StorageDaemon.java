@@ -27,10 +27,10 @@ import java.util.concurrent.TimeUnit;
 //StorageDaemons run on individual servers, managing the files on the server and replicationg them to all servers within the stripe.
 public class StorageDaemon {
     int maxActiveThreads;
-    ArrayList < Integer, InetAddress > stripeIPs = new ArrayList<Integer, Integer>();
-    ConcurrentHashMap < String, Integer > fileSizes = new ConcurrentHashMap<String, Integer>();
-    ConcurrentHashMap < String, String > authCodes = new ConcurrentHashMap<String, String>();
-    ConcurrentLinkedDeque < Socket > socketQueue = new ConcurrentLinkedDeque<Socket>();
+    ArrayList < Integer, InetAddress > stripeIPs = new ArrayList < Integer, InetAddress > ();
+    ConcurrentHashMap < String, Integer > fileSizes = new ConcurrentHashMap < String, Integer > ();
+    ConcurrentHashMap < String, String > authCodes = new ConcurrentHashMap < String, String > ();
+    ConcurrentLinkedDeque < Socket > socketQueue = new ConcurrentLinkedDeque < Socket > ();
     boolean isActive;
     InetSocketAddress daemonIP;
     ServerSocket command = Socket.open();
@@ -80,7 +80,8 @@ public class StorageDaemon {
                         t.interrupt();
                         return;
                     }
-                    t=Thread.sleep(1000);
+                    long millis=10;
+                    t=Thread.sleep(millis);
                 }
             };
             ExecutorService service = Executors.newSingleThreadExecutor();
@@ -106,7 +107,9 @@ public class StorageDaemon {
                     return;
                 }
             } else if (commandString.contains("write")) {
-                RandomAccessFile file = new RandomAccessFile(tierLocations[components[1]] = "/" + components[0] + ".dtrec", "w");
+                Integer a=Integer.parseInt(components[1]);
+                int tier=a;
+                RandomAccessFile file = new RandomAccessFile(tierLocations[tier] = "/" + components[0] + ".dtrec", "w");
                 authCodes.add(Integer.toHexString(components[2].hashCode()));
                 String token=components[3];
                 /****************************************************************************/

@@ -3,14 +3,16 @@ package tech.pod.dataset.storageprovider;
 import java.io.Serializable;
 import java.util.UUID;
 
-import tech.pod.dataset.ims.IndexKey;
 
 public class StorageKey implements Serializable{
     int pool,stripe;
     String hash;
     String name;
     static final UUID uuid=UUID.randomUUID();
-    static final long serialVersionUID=uuid;
+    static Integer temp=Integer.parseInt(uuid.toString());
+    static int temp1=temp;
+    static long temp2=temp1;
+    static final long serialVersionUID=temp2;
     StorageKey(int pool, int stripe, String name,String hash){
         this.pool=pool;
         this.stripe=stripe;
