@@ -135,11 +135,12 @@ public class S3Provider implements StorageProvider {
                 byte[] data;
                 buffer.get(data, 0, 1);
                 Byte bt=data[0];
-                buffer.position(2);
-                datamap.put(bt.toString(), buffer.slice());
-                buffer.clear();
-                buffer.put(datamap.get(token));
-                byte[] bytes=buffer.slice().array();
+                if( bt.toString()!=token){
+                    datamap.put(bt.toString(), buffer);
+                    buffer.clear();
+                    buffer.put(datamap.get(token));
+                }
+                byte[] bytes=buffer.array();
                 /****************************************************************************/
                 InputStream stream = new ByteArrayInputStream(bytesToBuffer);
                 ObjectMetadata metadata = new ObjectMetatada();

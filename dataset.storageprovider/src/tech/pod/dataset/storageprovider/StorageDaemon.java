@@ -126,10 +126,11 @@ public class StorageDaemon {
                 byte[] data;
                 buffer.get(data, 0, 1);
                 Byte bt=data[0];
-                buffer.position(2);
-                datamap.put(bt.toString(), buffer.slice());
+                if(bt.toString()!=token){
+                datamap.put(bt.toString(), buffer);
                 buffer.clear();
                 buffer.put(datamap.get(token));
+                }
                 /****************************************************************************/
                 buffer.flip();
                 FileChannel channel = file.getChannel();
