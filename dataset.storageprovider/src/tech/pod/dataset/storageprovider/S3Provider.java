@@ -81,6 +81,7 @@ public class S3Provider implements StorageProvider {
     public void recieve() {
         List<Socket> sockets = new ArrayList < Socket > ();
         ThreadPoolExecutor executorService = Executors.newCachedThreadPool();
+        ConcurrentHashMap < String, ByteBuffer > datamap = new ConcurrentHashMap < String, ByteBuffer > ();
         Runnable recieve = () -> {
             final Thread currentThread = Thread.currentThread();
             Runnable priority = () -> {
@@ -131,17 +132,14 @@ public class S3Provider implements StorageProvider {
                 socket.read(buffer);
                 /****************************************************************************/
                 //This section verifies whether the recieved data is the data associated with the right sender
-                byte[] data = buffer.array();
+                byte[] data;
+                buffer.get(data, 0, 1);
+                Byte bt=data[0];
+                buffer.position(2);
+                datamap.put(bt.toString(), buffer.slice());
                 buffer.clear();
-                byte b = data[0];
-                Byte bt=b;
-                datamap.put(bt.toString(), Arrays.copyOfRange(data, token.length, data.length-1));
-                //remember to try and optimize with partial ByteBuffer conversions
-                Byte[] bytes = datamap.get(token);
-                byte[] bytesToBuffer = new byte[bytes.length];
-                for(int i=0; i<bytes.length ;i++){
-                    bytesToBuffer[i]=bytes[i].byteValue();
-                }
+                buffer.put(datamap.get(token));
+                byte[] bytes=buffer.slice().array();
                 /****************************************************************************/
                 InputStream stream = new ByteArrayInputStream(bytesToBuffer);
                 ObjectMetadata metadata = new ObjectMetatada();

@@ -124,9 +124,9 @@ public class StorageDaemon {
                 /****************************************************************************/
                 //This section verifies whether the recieved data is the data associated with the right sender
                 byte[] data;
-                buffer.get(data, 0, token.length()-1);
+                buffer.get(data, 0, 1);
                 Byte bt=data[0];
-                buffer.position(token.length());
+                buffer.position(2);
                 datamap.put(bt.toString(), buffer.slice());
                 buffer.clear();
                 buffer.put(datamap.get(token));
