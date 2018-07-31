@@ -87,12 +87,12 @@ public class DistributedStorageProvider implements StorageProvider {
             for(int i=0;i<storagePools.size();i++){
                 temp.add(storagePools.get(i).getAllDaemons());
             }
+            ScheduledExecutorService service=Executors.newCachedThreadPool();
             for(int i=0;i<storagePools.size();i++){
                 for(int a=0;a<storagePools.get(i).size();a++){
                     s=new Socket(storagePools.get(i).get(a),port);
                     PrintWriter writer=new PrintWriter(s.getOutputStream(), true);
                     writer.write("ping");
-                    ScheduledExecutorService service=Executors.newSingleThreadExecutor();
                     ScheduledFuture f=service.submit(reciever);
                 }
             }

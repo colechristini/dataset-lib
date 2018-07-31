@@ -1,5 +1,6 @@
 package tech.pod.dataset.storageprovider;
 
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,21 +12,21 @@ public class HomogenousPool implements StoragePool {
 
     }
     public String get(int stripe) {
-        return storageDaemons.get(get(i));
+        return storageDaemons.get(stripe));
     }
     public SocketAddress getDaemonCommandAddress(int stripe){
         return storageDaemonsCommandAddressses.get(stripe).get(replicationLayers.get(stripe));
     }
-    public void addStripe(String[] stripeDisks, int tier) {
-    throw new UnsupportedOperationException();
+    public void addStripe(String[] stripeDaemons, int tier) {
+        throw new UnsupportedOperationException();
     }
-    public void addStripe(String[] stripeDisks) {
-        storageDaemons.add(Arrays.asList(stripeDisks));
+    public void addStripe(String[] stripeDaemons) {
+        storageDaemons.add(Arrays.asList(stripeDaemons));
         replicationLayers.add((Integer)0);
     }
-    public void addRepLayer(String[] stripeDisks) {
+    public void addRepLayer(String[] stripeDaemons) {
         for(int i=0;i<storageDaemons.size();i++){
-            storageDaemons.get(i).add(stripeDisks[i]);
+            storageDaemons.get(i).add(stripeDaemons[i]);
         }
     }
     public void remove(int stripe) {

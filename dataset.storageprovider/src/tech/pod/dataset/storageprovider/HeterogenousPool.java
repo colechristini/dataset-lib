@@ -23,21 +23,21 @@ public class HeterogenousPool implements StoragePool {
     public SocketAddress getDaemonCommandAddress(int stripe){
         return storageDaemonsCommandAddressses.get(stripe).get(replicationLayers.get(stripe));
     }
-    public void addStripe(String[] stripeDisks, Integer tier) {
-        storageDaemons.add(Arrays.asList(stripeDisks));
+    public void addStripe(String[] stripeDaemons, Integer tier) {
+        storageDaemons.add(Arrays.asList(stripeDaemons));
         tiers.add(tier);
        if(tierSizes.get(tier)==null){
            tierSizes.put(tier, (Integer)1);
        }
         replicationLayers.add((Integer)0);
     }
-    public void addStripe(String[] stripeDisks) {
+    public void addStripe(String[] stripeDaemons) {
         throw new UnsupportedOperationException();
     }
-    public void addRepLayer(String[] stripeDisks) {
-        if (stripeDisks.length == storageDaemons.size()) {
+    public void addRepLayer(String[] stripeDaemons) {
+        if (stripeDaemons.length == storageDaemons.size()) {
             for (int i = 0; i < storageDaemons.size(); i++) {
-                storageDaemons.get(i).add(stripeDisks[i]);
+                storageDaemons.get(i).add(stripeDaemons[i]);
             }
         }
         else{
