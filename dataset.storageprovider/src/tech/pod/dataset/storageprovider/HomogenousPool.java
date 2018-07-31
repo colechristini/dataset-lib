@@ -11,8 +11,11 @@ public class HomogenousPool implements StoragePool {
     HomogenousPool() {
 
     }
-    public String get(int stripe) {
-        return storageDaemons.get(stripe));
+    public List<SocketAddress> getStripe(int stripe) {
+        return storageDaemons.get(stripe);
+    }
+    public SocketAddress getDaemon(Integer stripe){
+        return storageDaemons.get(stripe.get(replicationLayers.get(stripe)));
     }
     public SocketAddress getDaemonCommandAddress(int stripe){
         return storageDaemonsCommandAddressses.get(stripe).get(replicationLayers.get(stripe));

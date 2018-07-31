@@ -9,32 +9,38 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 //StoragePool with per-stripe tiering instead of a homogeneous pool where every server is the same, containing all tiers. Individual servers run StorageDaemons to manage and send data.
 public class HeterogenousPool implements StoragePool {
-    List < List < String >> storageDaemons = new ArrayList < ArrayList < String >> ();
-    List < List < SocketAddress >> storageDaemonCommandAddresses = new ArrayList < ArrayList < SocketAddress >> ();
+    List < List < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress > > ();
+    List < List < SocketAddress > > storageDaemonCommandAddresses = new ArrayList < ArrayList < SocketAddress > > ();
     List < Integer > tiers = new ArrayList < Integer > ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     ConcurrentHashMap<Integer,Integer> tierSizes=new ConcurrentHashMap<Integer,Integer>();
     HeterogenousPool() {
 
     }
-    public String get(int stripe) {
+    public SocketAddress getDaemon(int stripe) {
         return storageDaemons.get(stripe).get(replicationLayers.get(stripe));
+    }
+    public List<SocketAddress> getStripe(int stripe) {
+        return storageDaemons.get(stripe);
     }
     public SocketAddress getDaemonCommandAddress(int stripe){
         return storageDaemonsCommandAddressses.get(stripe).get(replicationLayers.get(stripe));
     }
-    public void addStripe(String[] stripeDaemons, Integer tier) {
+    public void addStripe(SocketAddress[] stripeDaemons, Integer tier) {
         storageDaemons.add(Arrays.asList(stripeDaemons));
         tiers.add(tier);
-       if(tierSizes.get(tier)==null){
-           tierSizes.put(tier, (Integer)1);
+       if(tierSizes.get(tier)==null){//checks to see if the tier is in the tierSizes hashmap already
+           tierSizes.put(tier, new Integer(stripeDaemons.length));//if not, it adds an entry to the hashmap with the key as the tier and the alue as the length of the array
        }
-        replicationLayers.add((Integer)0);
+       else{
+           tierSizes.replace(tier, Integer.add(tierSizes.get(tier),new Integer(stripeDaemons.length)));
+       }
+        replicationLayers.add(new Integer(0));
     }
-    public void addStripe(String[] stripeDaemons) {
+    public void addStripe(SocketAddress[] stripeDaemons) {
         throw new UnsupportedOperationException();
     }
-    public void addRepLayer(String[] stripeDaemons) {
+    public void addRepLayer(SocketAddress[] stripeDaemons) {
         if (stripeDaemons.length == storageDaemons.size()) {
             for (int i = 0; i < storageDaemons.size(); i++) {
                 storageDaemons.get(i).add(stripeDaemons[i]);
@@ -43,6 +49,9 @@ public class HeterogenousPool implements StoragePool {
         else{
             throw UnsupportedOperationException;
         }
+    }
+    public void addRepDaemon(int stripe, SocketAddress daemon){
+        storageDaemons.get(stripe).add(daemon);
     }
     public void remove(int stripe) {
         storageDaemons.remove(stripe);
@@ -59,10 +68,10 @@ public class HeterogenousPool implements StoragePool {
     public List<Integer> returnTiers(){
         return tiers;
     }
-    public HashMap<String,Integer> returnTierSizes(){
+    public HashMap<Integer,Integer> returnTierSizes(){
         return tierSizes;
     }
-    public ArrayList<String> getAllDaemons(){
+    public ArrayList<SocketAddress> getAllDaemons(){
         List<String> output=new ArrayList<String>();
         for(int i=0;i<storageDaemons.size();i++){
             output.add(storageDaemons.get(i).get(replicationLayers.get(i)));
