@@ -16,7 +16,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-//import tech.pod.dataset.appserver.*;
+import tech.pod.dataset.appserver.Hidden;
 //DistributedStorageProvider acts as a more advanced on-premises StorageProvider, saving, getting, and removing objects from a set of distributed StoragePools
 
 public class DistributedStorageProvider implements StorageProvider {
@@ -83,7 +83,7 @@ public class DistributedStorageProvider implements StorageProvider {
                 storagePools.get(pool).incrementRepLayer(stripe);
                 heartbeatMap.replace(storagePools.get(pool).get(stripe), false);
             };
-            List<List<String>> temp=new ArrayList<ArrayList<String>>(heartbeatMap.size());
+            ArrayList<ArrayList<String>> temp=new ArrayList<ArrayList<String>>(heartbeatMap.size());
             for(int i=0;i<storagePools.size();i++){
                 temp.add(storagePools.get(i).getAllDaemons());
             }

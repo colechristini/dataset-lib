@@ -2,6 +2,7 @@ package tech.pod.dataset.storageprovider;
 
 import java.nio.*;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
@@ -31,10 +32,10 @@ public class StorageDaemon {
     ArrayList < InetAddress > stripeIPs = new ArrayList < InetAddress > ();
     ConcurrentHashMap < String, Integer > fileSizes = new ConcurrentHashMap < String, Integer > ();
     ConcurrentHashMap < String, String > authCodes = new ConcurrentHashMap < String, String > ();
-    ConcurrentLinkedDeque < Socket > socketQueue = new ConcurrentLinkedDeque < Socket > ();
+    ConcurrentLinkedDeque < SocketChannel > socketQueue = new ConcurrentLinkedDeque < SocketChannel > ();
     boolean isActive;
     InetSocketAddress daemonIP;
-    ServerSocket command = Socket.open();
+    ServerSocketChannel serverSocket;
     InetSocketAddress commandIP;
     int defaultBufferSize;
     boolean active = false;
@@ -47,6 +48,7 @@ public class StorageDaemon {
         this.defaultBufferSize = defaultBufferSize;
         this.tierLocations = tierLocations;
         this.maxActiveThreads=maxActiveThreads;
+        serverSocket.bind(daemonIP);
     }
 
     public void start() {
@@ -64,8 +66,11 @@ public class StorageDaemon {
 
     public void recieve() {
         ConcurrentHashMap < String, ByteBuffer > datamap = new ConcurrentHashMap < String, ByteBuffer > ();
-        ThreadPoolExecutor executorService = Executors.newCachedThreadPool();
+        ThreadPoolExecutor executorService = ThreadPoolExecutor.newCachedThreadPool();
+        //ArrayList<SocketChannel> socketChannels= new ArrayList<SocketChannel>();
+        //int index;
         Runnable recieve = () -> {
+            SocketChannel socket=socketQueue.poll();
             final Thread currentThread = Thread.currentThread();
             Runnable priority = () -> {
                 int counter;
@@ -87,22 +92,19 @@ public class StorageDaemon {
             };
             ExecutorService service = Executors.newSingleThreadExecutor();
             service.execute(priority);
-            PrintWriter out = new PrintWriter(socketQueue.poll().getOutputStream(), true);
-            String commands = out.toString();
-            String commandString = commands;
-            String[] components = commandString.split(":");// 0 is name,1 is authKey
-            if (commandString.contains("get")) {
+            byte[] commandBytes;
+            ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);//change, just guesswork
+            buffer.get(command, 0, 74);
+            String[] commandCompontents = command.toString().split(":");// 0 is command,1 is name, 2 is tier, 3 is authkey
+            if (commandCompontents[0]) {
+                buffer.clear();
                 if (Integer.toHexString(components[2].hashCode()) == authCodes.get(components[0])) {
                     RandomAccessFile file = new RandomAccessFile(fileNames.get(tierLocations[components[1]] = "/" + components[0] + ".dtrec"), "r");
-                    ByteBuffer buffer = ByteBuffer.allocate(fileSizes.get(components[0]));
+                    buffer = ByteBuffer.allocate(fileSizes.get(components[0]));
                     FileChannel fileChannel = file.getChannel();
                     int bytesRead = fileChannel.read(bb);
                     buffer.flip();
                     InetSocketAddress remote = new InetSocketAddress(InetAddress.getByName(components[2]));
-                    SocketChannel socket = SocketChannel.open();
-                    socket.bind(daemonIP);
-                    socket.connect(remote);
-                    socket.finishConnect();
                     socket.write(buffer);
                 } else {
                     return;
@@ -115,41 +117,28 @@ public class StorageDaemon {
                 String token=components[3];
                 /****************************************************************************/
                 //This section recieves the actual data from the client
-                ByteBuffer buffer = ByteBuffer.allocate(defaultBufferSize);
-                InetSocketAddress remote = new InetSocketAddress(InetAddress.getByName(components[3]));
-                SocketChannel socket = SocketChannel.open();
-                socket.bind(daemonIP);
-                socket.connect(remote);
-                socket.read(buffer);
                 /****************************************************************************/
                 //This section verifies whether the recieved data is the data associated with the right sender
-                byte[] data;
-                buffer.get(data, 0, 1);
-                Byte bt=data[0];
-                if(bt.toString()!=token){
-                datamap.put(bt.toString(), buffer);
-                buffer.clear();
-                buffer.put(datamap.get(token));
-                }
+                buffer.position(74);
+                buffer=buffer.slice();
                 /****************************************************************************/
                 buffer.flip();
                 FileChannel channel = file.getChannel();
                 channel.write(buffer);
                 fileSizes.put(key, buffer.position());
                 if (isActive) {
+                    SocketChannel activeShareSocketChannel=SocketChannel.open();
                     for (int i = 1; i < stripeIps.size(); i++) {
-                        Socket commandSenderSocket = new Socket(stripeIPs.get(i), 10000);
-                        OutputStream stream = commandSenderSocket.getOutputStream();
-                        PrintWriter writer = new PrintWriter(stream);
-                        writer.write(commandString);
-                        socket.connect(stripeIPs.get(i));
+                        
+                        activeShareSocketChannel.connect(stripeIPs.get(i));
+                        activeShareSocketChannel.finishConnect();
                         socket.write(buffer);
                     }
                 }
             }
         };
         while (active) {
-            Socket socket = command.accept();
+            SocketChannel socket = serverSocket.accept();
             if (socket != null) {
                 socketQueue.add(socket);
             }
