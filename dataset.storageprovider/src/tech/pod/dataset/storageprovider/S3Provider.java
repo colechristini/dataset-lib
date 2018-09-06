@@ -103,11 +103,33 @@ public class S3Provider implements StorageProvider {
                     t=Thread.sleep(1000);
                 }
             };
-            ExecutorService service = Executors.newSingleThreadExecutor();
-            service.execute(priority);
             byte[] commandBytes;
             ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);//change, just guesswork
-            buffer.get(command, 0, 74);
+            byte[] temp= new byte[1];
+            temp[1]=0;
+            buffer=ByteBuffer.wrap(temp);
+            socket.write(buffer);
+            buffer.clear();
+            buffer.flip();
+            int responseWait=0;
+            currentThread.setPriority(1);
+            while(responseWait<=timeOut){
+                socket.read(buffer);
+                if(buffer!=null){
+                    buffer.clear();
+                    break;
+                }
+                else if(responseWait<timeOut&&buffer==null){
+                    responseWait++;
+                    Thread.sleep(1);
+                }
+                else{
+                    return;
+                }
+            }
+            ExecutorService service = Executors.newSingleThreadExecutor();
+            service.execute(priority);
+            buffer.get(command, 0, 75);
             String[] commandComponents = command.toString().split(":");// 0 is command,1 is name, 2 is tier, 3 is authkey
             if (commandComponents[0].equals("get")) {
                 buffer.clear();
