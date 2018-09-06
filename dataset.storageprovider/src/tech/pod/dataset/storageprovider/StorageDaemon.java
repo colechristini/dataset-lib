@@ -40,8 +40,8 @@ public class StorageDaemon {
     int defaultBufferSize;
     boolean active = false;
     String[] tierLocations;
-
-    StorageDaemon(boolean isActive, InetSocketAddress daemonIP, InetSocketAddress commandIP, int defaultBufferSize, String[] tierLocations, int maxActiveThreads) {
+    int timeOut;
+    StorageDaemon(boolean isActive, InetSocketAddress daemonIP, InetSocketAddress commandIP, int defaultBufferSize, String[] tierLocations, int maxActiveThreads,int timeOut) {
         this.isActive = isActive;
         this.daemonIP = daemonIP;
         this.commandIP = commandIP;
@@ -49,10 +49,10 @@ public class StorageDaemon {
         this.tierLocations = tierLocations;
         this.maxActiveThreads=maxActiveThreads;
         serverSocket.bind(daemonIP);
+        this.timeOut=timeOut;
     }
 
     public void start() {
-        command.bind(commandIP);
         active = true;
     }
 
@@ -90,16 +90,40 @@ public class StorageDaemon {
                     t=Thread.sleep(millis);
                 }
             };
-            ExecutorService service = Executors.newSingleThreadExecutor();
-            service.execute(priority);
             byte[] commandBytes;
             ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);//change, just guesswork
-            buffer.get(command, 0, 74);
-            String[] commandCompontents = command.toString().split(":");// 0 is command,1 is name, 2 is tier, 3 is authkey
-            if (commandCompontents[0]) {
+            byte[] temp= new byte[1];
+            temp[1]=0;
+            buffer=ByteBuffer.wrap(temp);
+            socket.write(buffer);
+            buffer.clear();
+            buffer.flip();
+            int responseWait=0;
+            currentThread.setPriority(1);
+            while(responseWait<=timeOut){
+                socket.read(buffer);
+                if(buffer!=null){
+                    buffer.clear();
+                    break;
+                }
+                else if(responseWait<timeOut&&buffer==null){
+                    responseWait++;
+                    Thread.sleep(1);
+                }
+                else{
+                    return;
+                }
+            }
+            ExecutorService service = Executors.newSingleThreadExecutor();
+            service.execute(priority);
+            buffer.get(command, 0, 75);//first 75 bytes are metadata
+            String[] commandComponents = command.toString().split(":");// 0 is command,1 is name, 2 is tier, 3 is authkey
+            Integer tierObject=Integer.parseInt(commandComponent[2]);
+            int tier=tierObject;
+            if (commandComponents[0].equals("get")) {
                 buffer.clear();
                 if (Integer.toHexString(components[2].hashCode()) == authCodes.get(components[0])) {
-                    RandomAccessFile file = new RandomAccessFile(fileNames.get(tierLocations[components[1]] = "/" + components[0] + ".dtrec"), "r");
+                    RandomAccessFile file = new RandomAccessFile(tier + "/" + components[0] + ".dtrec", "r");
                     buffer = ByteBuffer.allocate(fileSizes.get(components[0]));
                     FileChannel fileChannel = file.getChannel();
                     int bytesRead = fileChannel.read(bb);
@@ -109,17 +133,14 @@ public class StorageDaemon {
                 } else {
                     return;
                 }
-            } else if (commandString.contains("write")) {
-                Integer a=Integer.parseInt(components[1]);
-                int tier=a;
+            } else if (commandComponents[0].equals("set")) {
                 RandomAccessFile file = new RandomAccessFile(tierLocations[tier] = "/" + components[0] + ".dtrec", "w");
                 authCodes.add(Integer.toHexString(components[2].hashCode()));
-                String token=components[3];
                 /****************************************************************************/
                 //This section recieves the actual data from the client
                 /****************************************************************************/
                 //This section verifies whether the recieved data is the data associated with the right sender
-                buffer.position(74);
+                buffer.position(75);
                 buffer=buffer.slice();
                 /****************************************************************************/
                 buffer.flip();
@@ -129,10 +150,10 @@ public class StorageDaemon {
                 if (isActive) {
                     SocketChannel activeShareSocketChannel=SocketChannel.open();
                     for (int i = 1; i < stripeIps.size(); i++) {
-                        
                         activeShareSocketChannel.connect(stripeIPs.get(i));
                         activeShareSocketChannel.finishConnect();
                         socket.write(buffer);
+                        activeShareSocketChannel.close();
                     }
                 }
             }

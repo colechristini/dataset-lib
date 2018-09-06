@@ -50,19 +50,20 @@ public class S3Provider implements StorageProvider {
     String bucketName;
     String tempPath;
     InetSocketAddress daemonIP;
-    ServerSocket command = Socket.open();
+    ServerSocketChannel serverSocket;
     InetSocketAddress commandIP;
     int defaultBufferSize;
     String saveLocation;
     boolean active = false;
     ConcurrentHashMap < String, String > authCodes = new ConcurrentHashMap < String, String > ();
-    ConcurrentLinkedDeque < Socket > socketQueue = new ConcurrentLinkedDeque<Socket>();
+    ConcurrentLinkedDeque < SocketChannel > socketQueue = new ConcurrentLinkedDeque<SocketChannel>();
     S3Provider(String bucketName, InetSocketAddress daemonIP, InetSocketAddress commandIP, int defaultBufferSize, int maxActiveThreads) {
         this.bucketName = bucketName;
         this.daemonIP = daemonIP;
         this.commandIP = commandIP;
         this.defaultBufferSize = defaultBufferSize;
         this.maxActiveThreads=maxActiveThreads;
+        serverSocket.bind(this.daemonIP);
     }
 
     public void start() {
@@ -83,6 +84,7 @@ public class S3Provider implements StorageProvider {
         ThreadPoolExecutor executorService = Executors.newCachedThreadPool();
         ConcurrentHashMap < String, ByteBuffer > datamap = new ConcurrentHashMap < String, ByteBuffer > ();
         Runnable recieve = () -> {
+            SocketChannel socket=socketQueue.poll();
             final Thread currentThread = Thread.currentThread();
             Runnable priority = () -> {
                 int counter;
@@ -103,18 +105,17 @@ public class S3Provider implements StorageProvider {
             };
             ExecutorService service = Executors.newSingleThreadExecutor();
             service.execute(priority);
-            PrintWriter out = new PrintWriter(socketQueue.poll().getOutputStream(), true);
-            String commands = out.toString();
-            String commandString = commands;
-            String[] components = commandString.split(":");// 0 is name,1 is authKey
-            if (commandString.contains("get")) {
+            byte[] commandBytes;
+            ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);//change, just guesswork
+            buffer.get(command, 0, 74);
+            String[] commandComponents = command.toString().split(":");// 0 is command,1 is name, 2 is tier, 3 is authkey
+            if (commandComponents[0].equals("get")) {
+                buffer.clear();
                 if (Integer.toHexString(components[2].hashCode()) == authCodes.get(components[0])) {
-                    ByteBuffer buffer = get(components[0]);
-                    FileChannel fileChannel = file.getChannel();
-                    int bytesRead = fileChannel.read(bb);
+                    Object record=get(commandCompontents[1]);
+                    record.
                     buffer.flip();
                     InetSocketAddress remote = new InetSocketAddress(InetAddress.getByName(components[2]));
-                    SocketChannel socket = SocketChannel.open();
                     socket.bind(daemonIP);
                     socket.connect(remote);
                     socket.finishConnect();
@@ -122,17 +123,12 @@ public class S3Provider implements StorageProvider {
                 } else {
                     return;
                 }
-            } else if (commandString.contains("write")) {
+            } else if (commandComponents[0].equals("set")) {
                 authCodes.add(Integer.toHexString(components[2].hashCode()));
-                ByteBuffer buffer = ByteBuffer.allocate(defaultBufferSize);
                 InetSocketAddress remote = new InetSocketAddress(InetAddress.getByName(components[3]));
-                SocketChannel socket = SocketChannel.open();
-                socket.bind(daemonIP);
-                socket.connect(remote);
-                socket.read(buffer);
                 /****************************************************************************/
                 //This section verifies whether the recieved data is the data associated with the right sender
-                byte[] data;
+                /* byte[] data;
                 buffer.get(data, 0, 1);
                 Byte bt=data[0];
                 if( bt.toString()!=token){
@@ -140,9 +136,12 @@ public class S3Provider implements StorageProvider {
                     buffer.clear();
                     buffer.put(datamap.get(token));
                 }
-                byte[] bytes=buffer.array();
+                byte[] bytes=buffer.array(); */
+                buffer.position(75);
+                buffer=buffer.slice();
+                byte[] byteArray=buffer.array();
                 /****************************************************************************/
-                InputStream stream = new ByteArrayInputStream(bytesToBuffer);
+                InputStream stream = new ByteArrayInputStream(byteArray);
                 ObjectMetadata metadata = new ObjectMetatada();
                 metadata.setContentType("text/plain");
                 metadata.setContentLength(fileBytes.length);
@@ -156,7 +155,7 @@ public class S3Provider implements StorageProvider {
             }
         };
         while (active) {
-            Socket socket = command.accept();
+            SocketChannel socket = serverSocket.accept();
             if (socket != null) {
                 socketQueue.add(socket);
             }
