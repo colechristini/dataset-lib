@@ -67,7 +67,7 @@ public class StorageDaemon {
 
     public void recieve() {
         ConcurrentHashMap < String, ByteBuffer > datamap = new ConcurrentHashMap < String, ByteBuffer > ();
-        RejectedExecutionHandlerImpl rejectedExecutionHandlerImpl=new RejectedExecutionHandlerImpl();
+        RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl=new RejectedExecutionHandlerImplementation();
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads, threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
         //ArrayList<SocketChannel> socketChannels= new ArrayList<SocketChannel>();
         //int index;
