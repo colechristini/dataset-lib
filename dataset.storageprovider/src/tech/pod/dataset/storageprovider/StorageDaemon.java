@@ -4,6 +4,7 @@ import java.nio.*;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.net.InetAddress;
@@ -48,7 +49,11 @@ public class StorageDaemon {
         this.defaultBufferSize = defaultBufferSize;
         this.tierLocations = tierLocations;
         this.maxActiveThreads = maxActiveThreads;
-        serverSocket.bind(daemonIP);
+        try {
+            serverSocket.bind(daemonIP);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.timeOut = timeOut;
         this.threadMaxCompleteTime=threadMaxCompleteTime;
     }
@@ -69,8 +74,6 @@ public class StorageDaemon {
         ConcurrentHashMap < String, ByteBuffer > datamap = new ConcurrentHashMap < String, ByteBuffer > ();
         RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl=new RejectedExecutionHandlerImplementation();
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads, threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
-        //ArrayList<SocketChannel> socketChannels= new ArrayList<SocketChannel>();
-        //int index;
         Runnable recieve = () -> {
             SocketChannel socket = socketQueue.pollFirst();
             final Thread currentThread = Thread.currentThread();
@@ -88,7 +91,11 @@ public class StorageDaemon {
                         return;
                     }
                     long millis = 10;
+                    try {
                     Thread.sleep(millis);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             };
             byte[] commandBytes = new byte[75];
@@ -96,16 +103,29 @@ public class StorageDaemon {
             byte[] temp = new byte[1];
             temp[1] = 0;
             buffer = ByteBuffer.wrap(temp);
-            socket.write(buffer);
+            try {
+                socket.write(buffer);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             buffer.clear();
             buffer.flip();
             int responseWait = 0;
             currentThread.setPriority(1);
             do {
+                try{
                 socket.read(buffer);
+                }
+                catch(IOException e){
+                    e.printStackTrace();
+                }
                 if (responseWait < timeOut) {
                     responseWait++;
-                    Thread.sleep(1);
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 } else {
                     return;
                 }
@@ -121,47 +141,75 @@ public class StorageDaemon {
             if (commandComponents[0].equals("get")) {
                 buffer.clear();
                 if (Integer.toHexString(commandComponents[3].hashCode()) == authCodes.get(commandComponents[1])) {
-                    RandomAccessFile file = new RandomAccessFile(commandComponents[2] + "/" + commandComponents[1] + ".dtrec", "r");
                     buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for aways using default buffer size
+                    try{
+                    RandomAccessFile file = new RandomAccessFile(commandComponents[2] + "/" + commandComponents[1] + ".dtrec", "r");
                     FileChannel fileChannel = file.getChannel();
                     int bytesRead = fileChannel.read(buffer);
                     file.close();
                     buffer.flip();
                     socket.write(buffer);
+                    }
+                    catch(IOException e){
+                        e.printStackTrace();
+                    }
                 } else {
                     return;
                 }
             } else if (commandComponents[0].equals("set")) {
-                RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] = "/" + commandComponents[1] + ".dtrec", "w");
+                try {
+                    RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] = "/" + commandComponents[1] + ".dtrec", "w");
                 authCodes.put(commandComponents[1],Integer.toHexString(commandComponents[3].hashCode()));
-                /****************************************************************************/
-                //This section recieves the actual data from the client
-                /****************************************************************************/
-                //This section verifies whether the recieved data is the data associated with the right sender
                 buffer.position(75);
                 buffer = buffer.slice();
-                /****************************************************************************/
                 buffer.flip();
                 FileChannel channel = file.getChannel();
-                file.close();
-                channel.write(buffer);
+                try {
+                    file.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    channel.write(buffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 fileSizes.put(commandComponents[1], buffer.position());
                 if (isActive) {
-                    SocketChannel activeShareSocketChannel = SocketChannel.open();
-                    for (int i = 1; i < stripeIPs.size(); i++) {
-                        activeShareSocketChannel.connect(stripeIPs.get(i));
-                        activeShareSocketChannel.finishConnect();
-                        socket.write(buffer);
-                        activeShareSocketChannel.close();
+                    
+                    try {
+                        SocketChannel activeShareSocketChannel = SocketChannel.open();
+                        for (int i = 1; i < stripeIPs.size(); i++) {
+                            try {
+                                activeShareSocketChannel.connect(stripeIPs.get(i));
+                                activeShareSocketChannel.finishConnect();
+                                socket.write(buffer);
+                                activeShareSocketChannel.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                           
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
+                }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         };
         while (active) {
-            SocketChannel socket = serverSocket.accept();
-            if (socket != null) {
-                socketQueue.add(socket);
+            
+            try {
+                SocketChannel socket= serverSocket.accept();
+                if (socket != null) {
+                    socketQueue.add(socket);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+           
             if (socketQueue.size() != 0 && executorService.getActiveCount() < maxActiveThreads) {
                 executorService.execute(recieve);
             } else {
