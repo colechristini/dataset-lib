@@ -15,6 +15,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
@@ -56,7 +57,7 @@ public class S3Provider implements StorageProvider {
     String saveLocation;
     boolean active = false;
     ConcurrentHashMap < String, String > authCodes = new ConcurrentHashMap < String, String > ();
-    ConcurrentLinkedDeque < SocketChannel > socketQueue = new ConcurrentLinkedDeque<SocketChannel>();
+    ConcurrentLinkedDeque<SocketChannel> socketQueue = new ConcurrentLinkedDeque<SocketChannel>();
     S3Provider(String bucketName, InetSocketAddress daemonIP, InetSocketAddress commandIP, int defaultBufferSize, int maxActiveThreads) {
         this.bucketName = bucketName;
         this.daemonIP = daemonIP;
@@ -80,11 +81,10 @@ public class S3Provider implements StorageProvider {
     }
 
     public void recieve() {
-        List<Socket> sockets = new ArrayList < Socket > ();
         ThreadPoolExecutor executorService = Executors.newCachedThreadPool();
         ConcurrentHashMap < String, ByteBuffer > datamap = new ConcurrentHashMap < String, ByteBuffer > ();
         Runnable recieve = () -> {
-            SocketChannel socket=socketQueue.poll();
+            SocketChannel socket=socketQueue.pollFirst();
             final Thread currentThread = Thread.currentThread();
             Runnable priority = () -> {
                 int counter;

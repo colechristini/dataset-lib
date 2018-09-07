@@ -70,7 +70,7 @@ public class StorageDaemon {
         //ArrayList<SocketChannel> socketChannels= new ArrayList<SocketChannel>();
         //int index;
         Runnable recieve = () -> {
-            SocketChannel socket=socketQueue.poll();
+            SocketChannel socket=socketQueue.pollFirst();
             final Thread currentThread = Thread.currentThread();
             Runnable priority = () -> {
                 int counter;
@@ -100,13 +100,9 @@ public class StorageDaemon {
             buffer.flip();
             int responseWait=0;
             currentThread.setPriority(1);
-            while(responseWait<=timeOut){
+            do{
                 socket.read(buffer);
-                if(buffer!=null){
-                    buffer.clear();
-                    break;
-                }
-                else if(responseWait<timeOut&&buffer==null){
+                if(responseWait<timeOut){
                     responseWait++;
                     Thread.sleep(1);
                 }
@@ -114,6 +110,8 @@ public class StorageDaemon {
                     return;
                 }
             }
+            while(responseWait<=timeOut&&buffer!=null);
+            buffer.clear();
             ExecutorService service = Executors.newSingleThreadExecutor();
             service.execute(priority);
             buffer.get(command, 0, 75);//first 75 bytes are metadata
