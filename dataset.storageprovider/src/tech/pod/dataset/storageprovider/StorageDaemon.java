@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
@@ -29,27 +30,27 @@ import java.util.concurrent.TimeUnit;
 //StorageDaemons run on individual servers, managing the files on the server and replicationg them to all servers within the stripe.
 public class StorageDaemon {
     int maxActiveThreads;
-    ArrayList < InetAddress > stripeIPs = new ArrayList < InetAddress > ();
+    ArrayList < InetSocketAddress > stripeIPs = new ArrayList < InetSocketAddress > ();
     ConcurrentHashMap < String, Integer > fileSizes = new ConcurrentHashMap < String, Integer > ();
     ConcurrentHashMap < String, String > authCodes = new ConcurrentHashMap < String, String > ();
     ConcurrentLinkedDeque < SocketChannel > socketQueue = new ConcurrentLinkedDeque < SocketChannel > ();
     boolean isActive;
     InetSocketAddress daemonIP;
     ServerSocketChannel serverSocket;
-    InetSocketAddress commandIP;
     int defaultBufferSize;
     boolean active = false;
     String[] tierLocations;
     int timeOut;
-    StorageDaemon(boolean isActive, InetSocketAddress daemonIP, InetSocketAddress commandIP, int defaultBufferSize, String[] tierLocations, int maxActiveThreads,int timeOut) {
+    int threadMaxCompleteTime;
+    StorageDaemon(boolean isActive, InetSocketAddress daemonIP, int defaultBufferSize, String[] tierLocations, int maxActiveThreads, int timeOut, int threadMaxCompleteTime) {
         this.isActive = isActive;
         this.daemonIP = daemonIP;
-        this.commandIP = commandIP;
         this.defaultBufferSize = defaultBufferSize;
         this.tierLocations = tierLocations;
-        this.maxActiveThreads=maxActiveThreads;
+        this.maxActiveThreads = maxActiveThreads;
         serverSocket.bind(daemonIP);
-        this.timeOut=timeOut;
+        this.timeOut = timeOut;
+        this.threadMaxCompleteTime=threadMaxCompleteTime;
     }
 
     public void start() {
@@ -66,88 +67,88 @@ public class StorageDaemon {
 
     public void recieve() {
         ConcurrentHashMap < String, ByteBuffer > datamap = new ConcurrentHashMap < String, ByteBuffer > ();
-        ThreadPoolExecutor executorService = ThreadPoolExecutor.newCachedThreadPool();
+        RejectedExecutionHandlerImpl rejectedExecutionHandlerImpl=new RejectedExecutionHandlerImpl();
+        ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads, threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
         //ArrayList<SocketChannel> socketChannels= new ArrayList<SocketChannel>();
         //int index;
         Runnable recieve = () -> {
-            SocketChannel socket=socketQueue.pollFirst();
+            SocketChannel socket = socketQueue.pollFirst();
             final Thread currentThread = Thread.currentThread();
             Runnable priority = () -> {
-                int counter;
+                int counter=0;
                 Thread t = Thread.currentThread();
                 t.setPriority(1);
-                while(true){
+                while (true) {
                     counter++;
-                     if(counter==30){
+                    if (counter == 30) {
                         currentThread.setPriority(7);
-                    }
-                    else if(counter==60){
+                    } else if (counter == 60) {
                         currentThread.setPriority(10);
                         t.interrupt();
                         return;
                     }
-                    long millis=10;
-                    t=Thread.sleep(millis);
+                    long millis = 10;
+                    Thread.sleep(millis);
                 }
             };
-            byte[] commandBytes;
-            ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);//change, just guesswork
-            byte[] temp= new byte[1];
-            temp[1]=0;
-            buffer=ByteBuffer.wrap(temp);
+            byte[] commandBytes = new byte[75];
+            ByteBuffer buffer = ByteBuffer.allocate(defaultBufferSize); //change, just guesswork
+            byte[] temp = new byte[1];
+            temp[1] = 0;
+            buffer = ByteBuffer.wrap(temp);
             socket.write(buffer);
             buffer.clear();
             buffer.flip();
-            int responseWait=0;
+            int responseWait = 0;
             currentThread.setPriority(1);
-            do{
+            do {
                 socket.read(buffer);
-                if(responseWait<timeOut){
+                if (responseWait < timeOut) {
                     responseWait++;
                     Thread.sleep(1);
-                }
-                else{
+                } else {
                     return;
                 }
             }
-            while(responseWait<=timeOut&&buffer!=null);
+            while (responseWait <= timeOut && buffer != null);
             buffer.clear();
             ExecutorService service = Executors.newSingleThreadExecutor();
             service.execute(priority);
-            buffer.get(command, 0, 75);//first 75 bytes are metadata
-            String[] commandComponents = command.toString().split(":");// 0 is command,1 is name, 2 is tier, 3 is authkey
-            Integer tierObject=Integer.parseInt(commandComponent[2]);
-            int tier=tierObject;
+            buffer.get(commandBytes, 0, 75); //first 75 bytes are metadata
+            String[] commandComponents = commandBytes.toString().split(":"); // 0 is command,1 is name, 2 is tier, 3 is authcode
+            Integer tierObject = Integer.parseInt(commandComponents[2]);
+            int tier = tierObject;
             if (commandComponents[0].equals("get")) {
                 buffer.clear();
-                if (Integer.toHexString(components[2].hashCode()) == authCodes.get(components[0])) {
-                    RandomAccessFile file = new RandomAccessFile(tier + "/" + components[0] + ".dtrec", "r");
-                    buffer = ByteBuffer.allocate(fileSizes.get(components[0]));
+                if (Integer.toHexString(commandComponents[3].hashCode()) == authCodes.get(commandComponents[1])) {
+                    RandomAccessFile file = new RandomAccessFile(commandComponents[2] + "/" + commandComponents[1] + ".dtrec", "r");
+                    buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for aways using default buffer size
                     FileChannel fileChannel = file.getChannel();
-                    int bytesRead = fileChannel.read(bb);
+                    int bytesRead = fileChannel.read(buffer);
+                    file.close();
                     buffer.flip();
-                    InetSocketAddress remote = new InetSocketAddress(InetAddress.getByName(components[2]));
                     socket.write(buffer);
                 } else {
                     return;
                 }
             } else if (commandComponents[0].equals("set")) {
-                RandomAccessFile file = new RandomAccessFile(tierLocations[tier] = "/" + components[0] + ".dtrec", "w");
-                authCodes.add(Integer.toHexString(components[2].hashCode()));
+                RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] = "/" + commandComponents[1] + ".dtrec", "w");
+                authCodes.put(commandComponents[1],Integer.toHexString(commandComponents[3].hashCode()));
                 /****************************************************************************/
                 //This section recieves the actual data from the client
                 /****************************************************************************/
                 //This section verifies whether the recieved data is the data associated with the right sender
                 buffer.position(75);
-                buffer=buffer.slice();
+                buffer = buffer.slice();
                 /****************************************************************************/
                 buffer.flip();
                 FileChannel channel = file.getChannel();
+                file.close();
                 channel.write(buffer);
-                fileSizes.put(key, buffer.position());
+                fileSizes.put(commandComponents[1], buffer.position());
                 if (isActive) {
-                    SocketChannel activeShareSocketChannel=SocketChannel.open();
-                    for (int i = 1; i < stripeIps.size(); i++) {
+                    SocketChannel activeShareSocketChannel = SocketChannel.open();
+                    for (int i = 1; i < stripeIPs.size(); i++) {
                         activeShareSocketChannel.connect(stripeIPs.get(i));
                         activeShareSocketChannel.finishConnect();
                         socket.write(buffer);
@@ -161,10 +162,9 @@ public class StorageDaemon {
             if (socket != null) {
                 socketQueue.add(socket);
             }
-            if(socketQueue.length!=0&&executorService.getActiveCount()<maxActiveThreads){
+            if (socketQueue.size() != 0 && executorService.getActiveCount() < maxActiveThreads) {
                 executorService.execute(recieve);
-            }
-            else{
+            } else {
                 continue;
             }
         }
