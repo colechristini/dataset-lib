@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 //StoragePool whose servers contain multiple storage tiers in each server, instead of per stripe tiering
 public class HomogenousPool implements StoragePool {
-    List < List < String >> storageDaemons = new ArrayList < ArrayList < String >> ();
+    List < List < SocketAddress >> storageDaemons = new ArrayList < ArrayList < SocketAddress >> ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     HomogenousPool() {
 
@@ -17,17 +17,14 @@ public class HomogenousPool implements StoragePool {
     public SocketAddress getDaemon(Integer stripe){
         return storageDaemons.get(stripe.get(replicationLayers.get(stripe)));
     }
-    public SocketAddress getDaemonCommandAddress(int stripe){
-        return storageDaemonsCommandAddressses.get(stripe).get(replicationLayers.get(stripe));
-    }
     public void addStripe(String[] stripeDaemons, int tier) {
         throw new UnsupportedOperationException();
     }
-    public void addStripe(String[] stripeDaemons) {
+    public void addStripe(SocketAddress[] stripeDaemons) {
         storageDaemons.add(Arrays.asList(stripeDaemons));
         replicationLayers.add((Integer)0);
     }
-    public void addRepLayer(String[] stripeDaemons) {
+    public void addRepLayer(SocketAddress[] stripeDaemons) {
         for(int i=0;i<storageDaemons.size();i++){
             storageDaemons.get(i).add(stripeDaemons[i]);
         }
@@ -36,11 +33,11 @@ public class HomogenousPool implements StoragePool {
         storageDaemons.remove(stripe);
         replicationLayers.remove(stripe);
     }
-    public void replace(int stripe, int repLayer, String newDaemon) {
+    public void replace(int stripe, int repLayer, SocketAddress newDaemon) {
         storageDaemons.get(stripe).set(repLayer, newDaemon);
     }
-    public ArrayList<String> getAllDaemons(){
-        List<String> output=new ArrayList<String>();
+    public ArrayList<SocketAddress> getAllDaemons(){
+        List<SocketAddress> output=new ArrayList<SocketAddress>();
         for(int i=0;i<storageDaemons.size();i++){
             output.add(storageDaemons.get(i).get(replicationLayers.get(i)));
         }
