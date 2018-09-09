@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 //StoragePool with per-stripe tiering instead of a homogeneous pool, wherein every server is the same, containing all tiers. Individual servers run StorageDaemons to manage and send data.
 public class HeterogenousPool implements StoragePoolInterface {
     List < List < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress > > ();
-    List < List < SocketAddress > > storageDaemonCommandAddresses = new ArrayList < ArrayList < SocketAddress > > ();
     List < Integer > tiers = new ArrayList < Integer > ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     ConcurrentHashMap<Integer,Integer> tierSizes=new ConcurrentHashMap<Integer,Integer>();
@@ -23,9 +22,6 @@ public class HeterogenousPool implements StoragePoolInterface {
     public List<SocketAddress> getStripe(int stripe) {//gets all daemons in stripe
         return storageDaemons.get(stripe);
     }
-    public SocketAddress getDaemonCommandAddress(int stripe){
-        return storageDaemonsCommandAddressses.get(stripe).get(replicationLayers.get(stripe));
-    }
     public void addStripe(SocketAddress[] stripeDaemons, Integer tier) {//adds a homogenous stripe
         storageDaemons.add(Arrays.asList(stripeDaemons));
         tiers.add(tier);
@@ -33,7 +29,7 @@ public class HeterogenousPool implements StoragePoolInterface {
            tierSizes.put(tier, new Integer(stripeDaemons.length));//if not, it adds an entry to the hashmap with the key as the tier and the alue as the length of the array
        }
        else{
-           tierSizes.replace(tier, Integer.add(tierSizes.get(tier),new Integer(stripeDaemons.length)));
+           tierSizes.replace(tier, Integer.sum((int)tierSizes.get(tier),stripeDaemons.length));
        }
         replicationLayers.add(new Integer(0));
     }
@@ -47,7 +43,7 @@ public class HeterogenousPool implements StoragePoolInterface {
             }
         }
         else{
-            throw UnsupportedOperationException;
+            //throw UnsupportedOperationException;
         }
     }
     public void addRepDaemon(int stripe, SocketAddress daemon){//adds a single daemon to one stripe
