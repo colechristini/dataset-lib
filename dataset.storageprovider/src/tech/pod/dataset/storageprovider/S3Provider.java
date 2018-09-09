@@ -15,6 +15,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,7 +48,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 //S3Provider acts as a basic StorageProvider, uploading, getting, and removing objects from Amazon AWS S3
 
-public class S3Provider implements  {
+public class S3Provider implements  StorageProviderInterface{
     int maxActiveThreads;
     String bucketName;
     String tempPath;

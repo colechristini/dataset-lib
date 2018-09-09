@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 //StoragePool with per-stripe tiering instead of a homogeneous pool, wherein every server is the same, containing all tiers. Individual servers run StorageDaemons to manage and send data.
-public class HeterogenousPool implements StoragePool {
+public class HeterogenousPool implements StoragePoolInterface {
     List < List < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress > > ();
     List < List < SocketAddress > > storageDaemonCommandAddresses = new ArrayList < ArrayList < SocketAddress > > ();
     List < Integer > tiers = new ArrayList < Integer > ();
