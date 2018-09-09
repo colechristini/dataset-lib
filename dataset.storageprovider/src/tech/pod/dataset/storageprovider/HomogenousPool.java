@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 //StoragePool whose servers contain multiple storage tiers in each server, instead of per stripe tiering
-public class HomogenousPool implements StoragePool {
+public class HomogenousPool implements StoragePoolInterface {
     List < List < SocketAddress >> storageDaemons = new ArrayList < ArrayList < SocketAddress >> ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     HomogenousPool() {
@@ -15,7 +15,7 @@ public class HomogenousPool implements StoragePool {
         return storageDaemons.get(stripe);
     }
     public SocketAddress getDaemon(Integer stripe){
-        return storageDaemons.get(stripe.get(replicationLayers.get(stripe)));
+        return storageDaemons.get(stripe).get(replicationLayers.get(stripe));
     }
     public void addStripe(String[] stripeDaemons, int tier) {
         throw new UnsupportedOperationException();
@@ -37,7 +37,7 @@ public class HomogenousPool implements StoragePool {
         storageDaemons.get(stripe).set(repLayer, newDaemon);
     }
     public ArrayList<SocketAddress> getAllDaemons(){
-        List<SocketAddress> output=new ArrayList<SocketAddress>();
+        ArrayList<SocketAddress> output=new ArrayList<SocketAddress>();
         for(int i=0;i<storageDaemons.size();i++){
             output.add(storageDaemons.get(i).get(replicationLayers.get(i)));
         }
