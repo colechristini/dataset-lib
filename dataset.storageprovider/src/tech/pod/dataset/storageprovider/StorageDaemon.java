@@ -71,7 +71,6 @@ public class StorageDaemon {
     }
 
     public void recieve() {
-        ConcurrentHashMap < String, ByteBuffer > datamap = new ConcurrentHashMap < String, ByteBuffer > ();
         RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl=new RejectedExecutionHandlerImplementation();
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads, threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
         Runnable recieve = () -> {
@@ -136,14 +135,12 @@ public class StorageDaemon {
             service.execute(priority);
             buffer.get(commandBytes, 0, 75); //first 75 bytes are metadata
             String[] commandComponents = commandBytes.toString().split(":"); // 0 is command,1 is name, 2 is tier, 3 is authcode
-            Integer tierObject = Integer.parseInt(commandComponents[2]);
-            int tier = tierObject;
             if (commandComponents[0].equals("get")) {
                 buffer.clear();
                 if (Integer.toHexString(commandComponents[3].hashCode()) == authCodes.get(commandComponents[1])) {
                     buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for aways using default buffer size
                     try{
-                    RandomAccessFile file = new RandomAccessFile(commandComponents[2] + "/" + commandComponents[1] + ".dtrec", "r");
+                    RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
                     FileChannel fileChannel = file.getChannel();
                     int bytesRead = fileChannel.read(buffer);
                     file.close();

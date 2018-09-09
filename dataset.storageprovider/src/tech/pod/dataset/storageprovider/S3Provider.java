@@ -25,6 +25,7 @@ import java.nio.channels.SocketChannel;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -46,7 +47,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 //S3Provider acts as a basic StorageProvider, uploading, getting, and removing objects from Amazon AWS S3
 
-public class S3Provider implements StorageProvider {
+public class S3Provider implements  {
     int maxActiveThreads;
     String bucketName;
     String tempPath;
