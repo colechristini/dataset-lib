@@ -4,7 +4,8 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-//StoragePool whose servers contain multiple storage tiers in each server, instead of per stripe tiering
+//StoragePool whose servers contain multiple storage tiers in each server,
+//instead of per stripe tiering
 
 public class HomogenousPool implements StoragePoolInterface {
     List < List < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress >> ();
