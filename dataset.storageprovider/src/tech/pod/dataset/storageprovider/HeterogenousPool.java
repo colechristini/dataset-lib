@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 //StoragePool with per-stripe tiering instead of a homogeneous pool, wherein every server is the same, containing all tiers. Individual servers run StorageDaemons to manage and send data.
 public class HeterogenousPool implements StoragePoolInterface {
-    List < List < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress > > ();
+    ArrayList < ArrayList < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress > > ();
     List < Integer > tiers = new ArrayList < Integer > ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     ConcurrentHashMap<Integer,Integer> tierSizes=new ConcurrentHashMap<Integer,Integer>();
@@ -22,8 +22,10 @@ public class HeterogenousPool implements StoragePoolInterface {
     public List<SocketAddress> getStripe(int stripe) {//gets all daemons in stripe
         return storageDaemons.get(stripe);
     }
-    public void addStripe(SocketAddress[] stripeDaemons, Integer tier) {//adds a homogenous stripe
-        storageDaemons.add(Arrays.asList(stripeDaemons));
+    public void addStripe(SocketAddress[] stripeDaemons, int tier) {//adds a homogenous stripe
+        ArrayList<SocketAddress> temp=new ArrayList<SocketAddress>();
+        temp.addAll(Arrays.asList(stripeDaemons));
+        storageDaemons.add(temp);
         tiers.add(tier);
        if(tierSizes.get(tier)==null){//checks to see if the tier is in the tierSizes hashmap already
            tierSizes.put(tier, new Integer(stripeDaemons.length));//if not, it adds an entry to the hashmap with the key as the tier and the alue as the length of the array

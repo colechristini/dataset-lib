@@ -8,7 +8,7 @@ import java.util.List;
 //instead of per stripe tiering
 
 public class HomogenousPool implements StoragePoolInterface {
-    List < List < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress >> ();
+    ArrayList <ArrayList < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress >> ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     HomogenousPool() {
 
@@ -16,14 +16,16 @@ public class HomogenousPool implements StoragePoolInterface {
     public List<SocketAddress> getStripe(int stripe) {
         return storageDaemons.get(stripe);
     }
-    public SocketAddress getDaemon(Integer stripe){
+    public SocketAddress getDaemon(int stripe){
         return storageDaemons.get(stripe).get(replicationLayers.get(stripe));
     }
-    public void addStripe(String[] stripeDaemons, int tier) {
+    public void addStripe(SocketAddress[] stripeDaemons, int tier) {
         throw new UnsupportedOperationException();
     }
     public void addStripe(SocketAddress[] stripeDaemons) {
-        storageDaemons.add(Arrays.asList(stripeDaemons));
+        ArrayList<SocketAddress> temp=new ArrayList<SocketAddress>();
+        temp.addAll(Arrays.asList(stripeDaemons));
+        storageDaemons.add(temp);
         replicationLayers.add((Integer)0);
     }
     public void addRepLayer(SocketAddress[] stripeDaemons) {
