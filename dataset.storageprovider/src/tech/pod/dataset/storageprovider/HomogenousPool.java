@@ -1,5 +1,6 @@
 package tech.pod.dataset.storageprovider;
 
+import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,7 +17,7 @@ public class HomogenousPool implements StoragePoolInterface {
     public List<SocketAddress> getStripe(int stripe) {
         return storageDaemons.get(stripe);
     }
-    public SocketAddress getDaemon(int stripe){
+    public SocketAddress getDaemon(int stripe) {
         return storageDaemons.get(stripe).get(replicationLayers.get(stripe));
     }
     public void addStripe(SocketAddress[] stripeDaemons, int tier) {
