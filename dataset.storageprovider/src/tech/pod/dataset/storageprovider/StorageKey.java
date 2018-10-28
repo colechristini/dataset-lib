@@ -13,7 +13,7 @@ public class StorageKey implements Serializable{
     static int temp1=temp;
     static long temp2=temp1;
     static final long serialVersionUID=temp2;
-    StorageKey(int pool, int stripe, String name,String hash){
+    StorageKey(int pool, int stripe, String name, String hash){
         this.pool=pool;
         this.stripe=stripe;
         this.name=name;

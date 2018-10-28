@@ -1,7 +1,7 @@
 package tech.pod.dataset.storageprovider;
 
 import java.net.InetAddress;
-import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,27 +9,27 @@ import java.util.List;
 //instead of per stripe tiering
 
 public class HomogenousPool implements StoragePoolInterface {
-    ArrayList <ArrayList < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress >> ();
+    ArrayList <ArrayList < InetSocketAddress > > storageDaemons = new ArrayList < ArrayList < InetSocketAddress >> ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     HomogenousPool() {
 
     }
-    public List<SocketAddress> getStripe(int stripe) {
+    public List<InetSocketAddress> getStripe(int stripe) {
         return storageDaemons.get(stripe);
     }
-    public SocketAddress getDaemon(int stripe) {
+    public InetSocketAddress getDaemon(int stripe) {
         return storageDaemons.get(stripe).get(replicationLayers.get(stripe));
     }
-    public void addStripe(SocketAddress[] stripeDaemons, int tier) {
+    public void addStripe(InetSocketAddress[] stripeDaemons, int tier) {
         throw new UnsupportedOperationException();
     }
-    public void addStripe(SocketAddress[] stripeDaemons) {
-        ArrayList<SocketAddress> temp=new ArrayList<SocketAddress>();
+    public void addStripe(InetSocketAddress[] stripeDaemons) {
+        ArrayList<InetSocketAddress> temp=new ArrayList<InetSocketAddress>();
         temp.addAll(Arrays.asList(stripeDaemons));
         storageDaemons.add(temp);
         replicationLayers.add((Integer)0);
     }
-    public void addRepLayer(SocketAddress[] stripeDaemons) {
+    public void addRepLayer(InetSocketAddress[] stripeDaemons) {
         for(int i=0;i<storageDaemons.size();i++){
             storageDaemons.get(i).add(stripeDaemons[i]);
         }
@@ -38,11 +38,11 @@ public class HomogenousPool implements StoragePoolInterface {
         storageDaemons.remove(stripe);
         replicationLayers.remove(stripe);
     }
-    public void replace(int stripe, int repLayer, SocketAddress newDaemon) {
+    public void replace(int stripe, int repLayer, InetSocketAddress newDaemon) {
         storageDaemons.get(stripe).set(repLayer, newDaemon);
     }
-    public ArrayList<SocketAddress> getAllDaemons(){
-        ArrayList<SocketAddress> output=new ArrayList<SocketAddress>();
+    public ArrayList<InetSocketAddress> getAllDaemons(){
+        ArrayList<InetSocketAddress> output=new ArrayList<InetSocketAddress>();
         for(int i=0;i<storageDaemons.size();i++){
             output.add(storageDaemons.get(i).get(replicationLayers.get(i)));
         }
@@ -50,5 +50,8 @@ public class HomogenousPool implements StoragePoolInterface {
     }
     public void incrementRepLayer(int stripe) {
         replicationLayers.set(stripe, replicationLayers.get(stripe) + 1);
+    }
+    public int getStripeCount(){
+        return storageDaemons.size();
     }
 }

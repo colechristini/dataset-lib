@@ -2,7 +2,7 @@ package tech.pod.dataset.storageprovider;
 
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -10,21 +10,21 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 //StoragePool with per-stripe tiering instead of a homogeneous pool, wherein every server is the same, containing all tiers. Individual servers run StorageDaemons to manage and send data.
 public class HeterogenousPool implements StoragePoolInterface {
-    ArrayList < ArrayList < SocketAddress > > storageDaemons = new ArrayList < ArrayList < SocketAddress > > ();
+    ArrayList < ArrayList < InetSocketAddress > > storageDaemons = new ArrayList < ArrayList < InetSocketAddress > > ();
     List < Integer > tiers = new ArrayList < Integer > ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     ConcurrentHashMap<Integer,Integer> tierSizes=new ConcurrentHashMap<Integer,Integer>();
     HeterogenousPool() {
 
     }
-    public SocketAddress getDaemon(int stripe) {
+    public InetSocketAddress getDaemon(int stripe) {
         return storageDaemons.get(stripe).get(replicationLayers.get(stripe));
     }
-    public List<SocketAddress> getStripe(int stripe) {//gets all daemons in stripe
+    public List<InetSocketAddress> getStripe(int stripe) {//gets all daemons in stripe
         return storageDaemons.get(stripe);
     }
-    public void addStripe(SocketAddress[] stripeDaemons, int tier) {//adds a homogenous stripe
-        ArrayList<SocketAddress> temp=new ArrayList<SocketAddress>();
+    public void addStripe(InetSocketAddress[] stripeDaemons, int tier) {//adds a homogenous stripe
+        ArrayList<InetSocketAddress> temp=new ArrayList<InetSocketAddress>();
         temp.addAll(Arrays.asList(stripeDaemons));
         storageDaemons.add(temp);
         tiers.add(tier);
@@ -36,10 +36,10 @@ public class HeterogenousPool implements StoragePoolInterface {
        }
         replicationLayers.add(new Integer(0));
     }
-    public void addStripe(SocketAddress[] stripeDaemons) {//adds a heterogenous stripe, not supported
+    public void addStripe(InetSocketAddress[] stripeDaemons) {//adds a heterogenous stripe, not supported
         throw new UnsupportedOperationException();
     }
-    public void addRepLayer(SocketAddress[] stripeDaemons) {//adds a single daemon to every stripe
+    public void addRepLayer(InetSocketAddress[] stripeDaemons) {//adds a single daemon to every stripe
         if (stripeDaemons.length == storageDaemons.size()) {
             for (int i = 0; i < storageDaemons.size(); i++) {
                 storageDaemons.get(i).add(stripeDaemons[i]);
@@ -49,7 +49,7 @@ public class HeterogenousPool implements StoragePoolInterface {
             //throw UnsupportedOperationException;
         }
     }
-    public void addRepDaemon(int stripe, SocketAddress daemon){//adds a single daemon to one stripe
+    public void addRepDaemon(int stripe, InetSocketAddress daemon){//adds a single daemon to one stripe
         storageDaemons.get(stripe).add(daemon);
     }
     public void remove(int stripe) {//deletes a stripe
@@ -58,7 +58,7 @@ public class HeterogenousPool implements StoragePoolInterface {
         tiers.remove(stripe);
         tierSizes.remove(tiers.get(stripe));
     }
-    public void replace(int stripe, int repLayer, SocketAddress newDaemon) {
+    public void replace(int stripe, int repLayer, InetSocketAddress newDaemon) {
         storageDaemons.get(stripe).set(repLayer, newDaemon);
     }
     public void incrementRepLayer(int stripe) {
@@ -70,11 +70,14 @@ public class HeterogenousPool implements StoragePoolInterface {
     public ConcurrentHashMap<Integer,Integer> returnTierSizes(){
         return tierSizes;
     }
-    public ArrayList<SocketAddress> getAllDaemons(){
-        ArrayList<SocketAddress> output=new ArrayList<SocketAddress>();
+    public ArrayList<InetSocketAddress> getAllDaemons(){
+        ArrayList<InetSocketAddress> output=new ArrayList<InetSocketAddress>();
         for(int i=0;i<storageDaemons.size();i++){
             output.add(storageDaemons.get(i).get(replicationLayers.get(i)));
         }
         return output;
+    }
+    public int getStripeCount(){
+        return storageDaemons.size();
     }
 }

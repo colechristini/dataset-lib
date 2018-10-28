@@ -1,6 +1,5 @@
 package tech.pod.dataset.storageprovider;
 
-import java.nio.*;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -59,12 +58,8 @@ public class StorageDaemon {
         active = true;
     }
 
-    public void pause() {
+    public void stop() {
         active = false;
-    }
-
-    public void unpause() {
-        active = true;
     }
 
     public void recieve() {
@@ -153,44 +148,43 @@ public class StorageDaemon {
             } else if (commandComponents[0].equals("set")) {
                 try {
                     RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] = "/" + commandComponents[1] + ".dtrec", "w");
-                authCodes.put(commandComponents[1],Integer.toHexString(commandComponents[3].hashCode()));
-                buffer.position(75);
-                buffer = buffer.slice();
-                buffer.flip();
-                FileChannel channel = file.getChannel();
-                try {
-                    file.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    channel.write(buffer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                fileSizes.put(commandComponents[1], buffer.position());
-                if (isActive) {
-                    
+                    authCodes.put(commandComponents[1],Integer.toHexString(commandComponents[3].hashCode()));
+                    buffer.position(75);
+                    buffer = buffer.slice();
+                    buffer.flip();
+                    FileChannel channel = file.getChannel();
                     try {
-                        SocketChannel activeShareSocketChannel = SocketChannel.open();
-                        for (int i = 1; i < stripeIPs.size(); i++) {
-                            try {
-                                activeShareSocketChannel.connect(stripeIPs.get(i));
-                                activeShareSocketChannel.finishConnect();
-                                socket.write(buffer);
-                                activeShareSocketChannel.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                           
-                        }
+                        file.close();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                    try {
+                        channel.write(buffer);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    fileSizes.put(commandComponents[1], buffer.position());
+                    if (isActive) {
+                        try {
+                            SocketChannel activeShareSocketChannel = SocketChannel.open();
+                            for (int i = 1; i < stripeIPs.size(); i++) {
+                                try {
+                                    activeShareSocketChannel.connect(stripeIPs.get(i));
+                                    activeShareSocketChannel.finishConnect();
+                                    socket.write(buffer);
+                                    activeShareSocketChannel.close();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
             }
         };
         while (active) {
