@@ -12,7 +12,6 @@ public class HomogenousPool implements StoragePoolInterface {
     ArrayList <ArrayList < InetSocketAddress > > storageDaemons = new ArrayList < ArrayList < InetSocketAddress >> ();
     List < Integer > replicationLayers = new ArrayList < Integer > ();
     HomogenousPool() {
-
     }
     public List<InetSocketAddress> getStripe(int stripe) {
         return storageDaemons.get(stripe);
