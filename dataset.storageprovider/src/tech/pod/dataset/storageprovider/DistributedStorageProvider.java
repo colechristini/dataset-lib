@@ -182,37 +182,42 @@ public class DistributedStorageProvider implements StorageProviderInterface {
     }
 
     public void startRecieve(String port) {
-        int currentpool = 0;
-        int currentstripe = 0;
         RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl = new RejectedExecutionHandlerImplementation();
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads, threadMaxCompleteTime,
                 TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(),
                 rejectedExecutionHandlerImpl);
         ConcurrentLinkedDeque<SocketChannel> socketQueue = new ConcurrentLinkedDeque<SocketChannel>();
-        Runnable recieve = () -> {
-            SocketChannel socket = socketQueue.pollFirst();
-            final Thread currentThread = Thread.currentThread();
-            Runnable priority = () -> {
-                int counter = 0;
-                Thread t = Thread.currentThread();
-                t.setPriority(1);
-                while (true) {
-                    counter++;
-                    if (counter == 30) {
-                        currentThread.setPriority(7);
-                    } else if (counter == 60) {
-                        currentThread.setPriority(10);
+        List<Thread> activeThreads=new ArrayList<Thread>();
+        List<Integer> threadTimers=new ArrayList<Integer>();
+        Runnable priority = () -> {
+            int counter = 0;
+            Thread t = Thread.currentThread();
+            t.setPriority(1);
+            while (active) {
+                for (int i = 0; i < activeThreads.size(); i++) {
+                    threadTimers.set(i, new Integer(threadTimers.get(i).intValue()+1));
+                    if (threadTimers.get(i).intValue() == 1000) {
+                        activeThreads.get(i).setPriority(7);
+                    } else if (threadTimers.get(i).intValue() == 2000) {
+                        activeThreads.get(i).setPriority(10);
                         t.interrupt();
-                        return;
                     }
-                    long millis = 10;
+                    long millis = 1;
                     try {
                         Thread.sleep(millis);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-            };
+                
+                
+            }
+        };
+        Runnable recieve = () -> {
+            SocketChannel socket = socketQueue.pollFirst();
+            final Thread currentThread = Thread.currentThread();
+            activeThreads.add(currentThread);
+            threadTimers.add(new Integer(0));
             ByteBuffer buffer = ByteBuffer.allocate(defaultBufferSize); // change, just guesswork
             byte[] temp = new byte[1];
             temp[1] = 0;
