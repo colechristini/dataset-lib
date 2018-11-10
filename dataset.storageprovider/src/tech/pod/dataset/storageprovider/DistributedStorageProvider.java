@@ -220,10 +220,14 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         Runnable recieve = () -> {
             Thread t=Thread.currentThread();
             t.setPriority(3);
-            ByteBuffer buffer;
+            ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);
             while(active){
                 for(int i=0; i<activeSockets.size();i++){
-                    activeSockets.get(i).read(buffer);
+                    try {
+                        activeSockets.get(i).read(buffer);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     if(buffer!=null){
                         CommandRequest request=new CommandRequest(activeSockets.get(i),buffer);
                         requestQueue.addLast(request);
@@ -234,75 +238,79 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         };
         Runnable processRespond = () -> {
             boolean hasWork=false;
-            CommandRequest request;
-            SocketChannel socket;
-            while(active){
-                if(!hasWork){
-                    request=requestQueue.pollFirst().
-                    socket = request.getChannel();
-                    hasWork=true;
-                }
-                else if(hasWork){    
-                    final Thread currentThread = Thread.currentThread();
-                    activeThreads.add(currentThread);
-                    threadTimers.add(new Integer(0));
-                    ByteBuffer buffer = request.getContent(); // change, just guesswork
-                    CharBuffer charBuffer = buffer.asCharBuffer();
-                    String command = charBuffer.toString();
-                    String[] commandComponents = command.split(":");
-                    if (commandComponents[0].equals("get")) {
-                        stripe++;
-                        if (stripe > storagePools.get(pool).getStripeCount()) {
-                            pool++;
-                            stripe = 0;
-                        }
-                        StorageKey key = (StorageKey) get(commandComponents[1]);
-                        int[] path = key.getPath();
-                        InetSocketAddress daemon = storagePools.get(path[0]).getDaemon(path[1]);
-                        buffer.clear();
-                        buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
-                        buffer.flip();
-                        try {
-                            socket.write(buffer);
-                            socket.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+            CommandRequest request=new CommandRequest();
+            try {
+                SocketChannel socket=SocketChannel.open();
+                while(active){
+                    if(!hasWork){
+                        request=requestQueue.pollFirst();
+                        socket = request.getChannel();
                         hasWork=true;
-                        continue;
-                    } else if (commandComponents[0].equals("put")) {
-                        InetSocketAddress daemon = put(commandComponents[1], commandComponents[2]);
-                        buffer.clear();
-                        buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
-                        buffer.flip();
-                        try {
-                            socket.write(buffer);
-                            socket.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        hasWork=true;
-                        continue;
-                    } else if (commandComponents[0].equals("remove")) {
-                        StorageKey key = (StorageKey) get(commandComponents[1]);
-                        int[] path = key.getPath();
-                        InetSocketAddress daemon = storagePools.get(path[0]).getDaemon(path[1]);
-                        buffer.clear();
-                        buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
-                        buffer.flip();
-                        try {
-                            socket.write(buffer);
-                            socket.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        remove(commandComponents[1]);
-                        socket.close();
-                        hasWork=true;
-                        continue;
                     }
-                }
+                    else if(hasWork){    
+                        final Thread currentThread = Thread.currentThread();
+                        activeThreads.add(currentThread);
+                        threadTimers.add(new Integer(0));
+                        ByteBuffer buffer = request.getBuffer();
+                        CharBuffer charBuffer = buffer.asCharBuffer();
+                        String command = charBuffer.toString();
+                        String[] commandComponents = command.split(":");
+                        if (commandComponents[0].equals("get")) {
+                            stripe++;
+                            if (stripe > storagePools.get(pool).getStripeCount()) {
+                                pool++;
+                                stripe = 0;
+                            }
+                            StorageKey key = (StorageKey) get(commandComponents[1]);
+                            int[] path = key.getPath();
+                            InetSocketAddress daemon = storagePools.get(path[0]).getDaemon(path[1]);
+                            buffer.clear();
+                            buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
+                            buffer.flip();
+                            try {
+                                socket.write(buffer);
+                                socket.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            hasWork=false;
+                            continue;
+                        } else if (commandComponents[0].equals("put")) {
+                            InetSocketAddress daemon = put(commandComponents[1], commandComponents[2]);
+                            buffer.clear();
+                            buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
+                            buffer.flip();
+                            try {
+                                socket.write(buffer);
+                                socket.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            hasWork=false;
+                            continue;
+                        } else if (commandComponents[0].equals("remove")) {
+                            StorageKey key = (StorageKey) get(commandComponents[1]);
+                            int[] path = key.getPath();
+                            InetSocketAddress daemon = storagePools.get(path[0]).getDaemon(path[1]);
+                            buffer.clear();
+                            buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
+                            buffer.flip();
+                            try {
+                                socket.write(buffer);
+                                socket.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            remove(commandComponents[1]);
+                            hasWork=false;
+                            continue;
+                        }
+                    }
+                }  
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            
         };
         
         executorService.execute(recieve);

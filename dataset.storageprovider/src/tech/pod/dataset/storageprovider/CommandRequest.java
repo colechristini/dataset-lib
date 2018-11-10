@@ -10,6 +10,7 @@ public class CommandRequest{
         this.channel=channel;
         this.content=content;
     }
+    CommandRequest(){}
     public SocketChannel getChannel(){
         return channel;
     }
