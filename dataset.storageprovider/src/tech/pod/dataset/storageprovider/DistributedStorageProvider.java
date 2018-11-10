@@ -188,14 +188,14 @@ public class DistributedStorageProvider implements StorageProviderInterface {
     }
 
     public void startRecieve(String port) {
-        List<SocketChannel> 
+        List<SocketChannel> activeSockets=new ArrayList<SocketChannel>();
         RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl =
                 new RejectedExecutionHandlerImplementation();
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads,
                 threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2),
                 Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
-        ConcurrentLinkedDeque<SocketChannel> socketQueue =
-                new ConcurrentLinkedDeque<SocketChannel>();
+        ConcurrentLinkedDeque<CommandRequest> socketQueue =
+                new ConcurrentLinkedDeque<CommandRequest>();
         List<Thread> activeThreads = new ArrayList<Thread>();
         List<Integer> threadTimers = new ArrayList<Integer>();
         Runnable priority = () -> {
@@ -224,7 +224,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         executorService.execute(priority);
         Runnable recieve = () -> {
 
-        }
+        };
         Runnable processRespond = () -> {
             boolean hasWork=false;
             SocketChannel socket = socketQueue.pollFirst();
@@ -296,7 +296,8 @@ public class DistributedStorageProvider implements StorageProviderInterface {
             try {
                 SocketChannel socket = serverSocket.accept();
                 if (socket != null) {
-                    socketQueue.add(socket);
+                    activeSockets.add(socket);
+                    
                 }
             } catch (IOException e) {
                 e.printStackTrace();
