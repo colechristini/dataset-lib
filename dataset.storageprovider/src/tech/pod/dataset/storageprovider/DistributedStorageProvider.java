@@ -41,9 +41,9 @@ public class DistributedStorageProvider implements StorageProviderInterface {
     boolean active;
     int pool, stripe = 0;
     int defaultBufferSize;
-    
-    DistributedStorageProvider(InetSocketAddress ip, int maxActiveThreads, int maxHeartbeatThreads,
-            int timeOut, int threadMaxCompleteTime, int defaultBufferSize) {
+
+    DistributedStorageProvider(InetSocketAddress ip, int maxActiveThreads, int maxHeartbeatThreads, int timeOut,
+            int threadMaxCompleteTime, int defaultBufferSize) {
         this.ip = ip;
         this.maxActiveThreads = maxActiveThreads;
         this.maxHeartbeatThreads = maxHeartbeatThreads;
@@ -87,8 +87,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         }
     }
 
-    public void addPool(String mode, List<List<InetSocketAddress>> presuppliedDaemons,
-            List<Integer> tiers) {
+    public void addPool(String mode, List<List<InetSocketAddress>> presuppliedDaemons, List<Integer> tiers) {
         if (mode == "homogenous") {
             storagePools.add(new HomogenousPool());
         } else if (mode == "heterogenous") {
@@ -98,8 +97,8 @@ public class DistributedStorageProvider implements StorageProviderInterface {
             int a = 0;
             for (int i = 0; i < presuppliedDaemons.size(); i++) {
                 a++;
-                storagePools.get(storagePools.size() - 1).addStripe(presuppliedDaemons.get(i)
-                        .toArray(new InetSocketAddress[presuppliedDaemons.get(i).size()]));
+                storagePools.get(storagePools.size() - 1).addStripe(
+                        presuppliedDaemons.get(i).toArray(new InetSocketAddress[presuppliedDaemons.get(i).size()]));
                 for (int inc = 0; inc < presuppliedDaemons.get(i).size(); inc++) {
                     heartbeatMap.put(presuppliedDaemons.get(i).get(inc).toString(), (Boolean) true);
                 }
@@ -107,8 +106,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         } else if (storagePools.get(storagePools.size() - 1) instanceof HeterogenousPool) {
             for (int i = 0; i < presuppliedDaemons.size(); i++) {
                 storagePools.get(storagePools.size() - 1).addStripe(
-                        presuppliedDaemons.get(i)
-                                .toArray(new InetSocketAddress[presuppliedDaemons.get(i).size()]),
+                        presuppliedDaemons.get(i).toArray(new InetSocketAddress[presuppliedDaemons.get(i).size()]),
                         (int) tiers.get(i));
                 for (int inc = 0; inc < presuppliedDaemons.get(i).size(); i++) {
                     heartbeatMap.put(presuppliedDaemons.get(i).get(inc).toString(), (Boolean) true);
@@ -126,8 +124,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                 Socket socket = sockets.pollFirst();
                 int currentPing = 0;
                 try {
-                    BufferedReader reader =
-                            new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     int pool = poolStripeArray[0];
                     int stripe = poolStripeArray[1];
                     while (currentPing < acceptablePing) {
@@ -146,14 +143,13 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                     }
                     StoragePoolInterface storagePool = storagePools.get(pool);
                     storagePool.incrementRepLayer(stripe);
-                    heartbeatMap.replace(storagePools.get(pool).getDaemon(stripe).toString(),
-                            false);
+                    heartbeatMap.replace(storagePools.get(pool).getDaemon(stripe).toString(), false);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             };
-            ArrayList<ArrayList<InetSocketAddress>> temp =
-                    new ArrayList<ArrayList<InetSocketAddress>>(heartbeatMap.size());
+            ArrayList<ArrayList<InetSocketAddress>> temp = new ArrayList<ArrayList<InetSocketAddress>>(
+                    heartbeatMap.size());
             for (int i = 0; i < storagePools.size(); i++) {
                 ArrayList<InetSocketAddress> converter = storagePools.get(i).getAllDaemons();
                 temp.add(converter);
@@ -170,7 +166,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                         PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                         writer.write("ping");
                         sockets.addFirst(socket);
-                        int[] poolStripeArray = {pool1, stripe1};
+                        int[] poolStripeArray = { pool1, stripe1 };
                         poolStripe.addLast(poolStripeArray);
                         socket.close();
                     } catch (IOException e) {
@@ -183,8 +179,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
             }
         };
         ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
-        ScheduledFuture<?> future =
-                service.scheduleWithFixedDelay(heartbeat, heartbeatTimer, heartbeatTimer, unit);
+        ScheduledFuture<?> future = service.scheduleWithFixedDelay(heartbeat, heartbeatTimer, heartbeatTimer, unit);
     }
 
     public void startRecieve(String port) {
@@ -194,10 +189,11 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads,
                 threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2),
                 Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
-        ConcurrentLinkedDeque<CommandRequest> socketQueue =
+        ConcurrentLinkedDeque<CommandRequest> requestQueue =
                 new ConcurrentLinkedDeque<CommandRequest>();
         List<Thread> activeThreads = new ArrayList<Thread>();
         List<Integer> threadTimers = new ArrayList<Integer>();
+        
         Runnable priority = () -> {
             Thread t = Thread.currentThread();
             t.setPriority(1);
@@ -221,77 +217,99 @@ public class DistributedStorageProvider implements StorageProviderInterface {
 
             }
         };
-        executorService.execute(priority);
         Runnable recieve = () -> {
-
+            Thread t=Thread.currentThread();
+            t.setPriority(3);
+            ByteBuffer buffer;
+            while(active){
+                for(int i=0; i<activeSockets.size();i++){
+                    activeSockets.get(i).read(buffer);
+                    if(buffer!=null){
+                        CommandRequest request=new CommandRequest(activeSockets.get(i),buffer);
+                        requestQueue.addLast(request);
+                        buffer.clear();
+                    }
+                }
+            }
         };
         Runnable processRespond = () -> {
             boolean hasWork=false;
-            SocketChannel socket = socketQueue.pollFirst();
-            final Thread currentThread = Thread.currentThread();
-            activeThreads.add(currentThread);
-            threadTimers.add(new Integer(0));
-            ByteBuffer buffer = ByteBuffer.allocate(defaultBufferSize); // change, just guesswork
-            byte[] temp = new byte[1];
-            temp[1] = 0;
-            buffer = ByteBuffer.wrap(temp);
-            try {
-                socket.write(buffer);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            CharBuffer charBuffer = buffer.asCharBuffer();
-            String command = charBuffer.toString();
-            String[] commandComponents = command.split(":");
-            if (commandComponents[0].equals("get")) {
-                stripe++;
-                if (stripe > storagePools.get(pool).getStripeCount()) {
-                    pool++;
-                    stripe = 0;
+            CommandRequest request;
+            SocketChannel socket;
+            while(active){
+                if(!hasWork){
+                    request=requestQueue.pollFirst().
+                    socket = request.getChannel();
+                    hasWork=true;
                 }
-                StorageKey key = (StorageKey) get(commandComponents[1]);
-                int[] path = key.getPath();
-                InetSocketAddress daemon = storagePools.get(path[0]).getDaemon(path[1]);
-                buffer.clear();
-                buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
-                buffer.flip();
-                try {
-                    socket.write(buffer);
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                else if(hasWork){    
+                    final Thread currentThread = Thread.currentThread();
+                    activeThreads.add(currentThread);
+                    threadTimers.add(new Integer(0));
+                    ByteBuffer buffer = request.getContent(); // change, just guesswork
+                    CharBuffer charBuffer = buffer.asCharBuffer();
+                    String command = charBuffer.toString();
+                    String[] commandComponents = command.split(":");
+                    if (commandComponents[0].equals("get")) {
+                        stripe++;
+                        if (stripe > storagePools.get(pool).getStripeCount()) {
+                            pool++;
+                            stripe = 0;
+                        }
+                        StorageKey key = (StorageKey) get(commandComponents[1]);
+                        int[] path = key.getPath();
+                        InetSocketAddress daemon = storagePools.get(path[0]).getDaemon(path[1]);
+                        buffer.clear();
+                        buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
+                        buffer.flip();
+                        try {
+                            socket.write(buffer);
+                            socket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        hasWork=true;
+                        continue;
+                    } else if (commandComponents[0].equals("put")) {
+                        InetSocketAddress daemon = put(commandComponents[1], commandComponents[2]);
+                        buffer.clear();
+                        buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
+                        buffer.flip();
+                        try {
+                            socket.write(buffer);
+                            socket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        hasWork=true;
+                        continue;
+                    } else if (commandComponents[0].equals("remove")) {
+                        StorageKey key = (StorageKey) get(commandComponents[1]);
+                        int[] path = key.getPath();
+                        InetSocketAddress daemon = storagePools.get(path[0]).getDaemon(path[1]);
+                        buffer.clear();
+                        buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
+                        buffer.flip();
+                        try {
+                            socket.write(buffer);
+                            socket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        remove(commandComponents[1]);
+                        socket.close();
+                        hasWork=true;
+                        continue;
+                    }
                 }
-                return;
-            } else if (commandComponents[0].equals("put")) {
-                InetSocketAddress daemon = put(commandComponents[1], commandComponents[2]);
-                buffer.clear();
-                buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
-                buffer.flip();
-                try {
-                    socket.write(buffer);
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return;
-            } else if (commandComponents[0].equals("remove")) {
-                StorageKey key = (StorageKey) get(commandComponents[1]);
-                int[] path = key.getPath();
-                InetSocketAddress daemon = storagePools.get(path[0]).getDaemon(path[1]);
-                buffer.clear();
-                buffer = ByteBuffer.wrap(daemon.getAddress().getAddress());
-                buffer.flip();
-                try {
-                    socket.write(buffer);
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                remove(commandComponents[1]);
-                return;
             }
         };
-        executorService.submit(recieve);
+        
+        executorService.execute(recieve);
+        executorService.execute(priority);
+        for(int i=0;i<maxActiveThreads;i++){
+            executorService.execute(processRespond);
+        }
         while (active) {
             try {
                 SocketChannel socket = serverSocket.accept();
@@ -302,8 +320,8 @@ public class DistributedStorageProvider implements StorageProviderInterface {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            if (socketQueue.size() != 0 && executorService.getActiveCount() < maxActiveThreads) {
-                executorService.execute(recieve);
+            if (requestQueue.size() != 0 && executorService.getActiveCount() < maxActiveThreads) {
+                
             } else {
                 continue;
             }
@@ -319,13 +337,11 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         if (storagePools.get(pool) instanceof HeterogenousPool) {
             HeterogenousPool currentPool = (HeterogenousPool) storagePools.get(pool);
             Integer temp = Integer.parseInt(tier);
-            StorageKey key = new StorageKey(pool, stripe, objectName,
-                    Integer.toHexString(objectName.hashCode()));
+            StorageKey key = new StorageKey(pool, stripe, objectName, Integer.toHexString(objectName.hashCode()));
             files.put(objectName, key);
             return currentPool.getDaemonByTier(temp.intValue());
         } else {
-            StorageKey key = new StorageKey(pool, stripe, objectName,
-                    Integer.toHexString(objectName.hashCode()));
+            StorageKey key = new StorageKey(pool, stripe, objectName, Integer.toHexString(objectName.hashCode()));
             files.put(objectName, key);
             return storagePools.get(pool).getDaemon(stripe);
         }
