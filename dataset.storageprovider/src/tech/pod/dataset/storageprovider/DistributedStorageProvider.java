@@ -27,6 +27,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 // DistributedStorageProvider acts as a more advanced on-premises StorageProvider, saving, getting,
 // and removing objects from a set of distributed StoragePools
+import java.util.stream.IntStream;
 
 public class DistributedStorageProvider implements StorageProviderInterface {
     ConcurrentHashMap<String, Boolean> heartbeatMap = new ConcurrentHashMap<String, Boolean>();
@@ -41,12 +42,14 @@ public class DistributedStorageProvider implements StorageProviderInterface {
     boolean active;
     int pool, stripe = 0;
     int defaultBufferSize;
+    int maxRecieverThreads;
 
-    DistributedStorageProvider(InetSocketAddress ip, int maxActiveThreads, int maxHeartbeatThreads, int timeOut,
-            int threadMaxCompleteTime, int defaultBufferSize) {
+    DistributedStorageProvider(InetSocketAddress ip, int maxActiveThreads, int maxHeartbeatThreads,
+            int maxRecieverThreads, int timeOut, int threadMaxCompleteTime, int defaultBufferSize) {
         this.ip = ip;
         this.maxActiveThreads = maxActiveThreads;
         this.maxHeartbeatThreads = maxHeartbeatThreads;
+        this.maxRecieverThreads = maxRecieverThreads;
         try {
             serverSocket.bind(ip, 9999);
         } catch (IOException e) {
@@ -58,9 +61,10 @@ public class DistributedStorageProvider implements StorageProviderInterface {
     }
 
     DistributedStorageProvider(InetSocketAddress ip, int port, int timeOut, int maxActiveThreads,
-            int maxHeartbeatThreads, int threadMaxCompleteTime, int defaultBufferSize) {
+            int maxHeartbeatThreads, int maxRecieverThreads, int threadMaxCompleteTime, int defaultBufferSize) {
         this.ip = ip;
         this.maxActiveThreads = maxActiveThreads;
+        this.maxRecieverThreads = maxRecieverThreads;
         try {
             serverSocket.bind(ip, port);
         } catch (IOException e) {
@@ -183,17 +187,21 @@ public class DistributedStorageProvider implements StorageProviderInterface {
     }
 
     public void startRecieve(String port) {
-        List<SocketChannel> activeSockets=new ArrayList<SocketChannel>();
-        RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl =
-                new RejectedExecutionHandlerImplementation();
-        ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads,
-                threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2),
-                Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
-        ConcurrentLinkedDeque<CommandRequest> requestQueue =
-                new ConcurrentLinkedDeque<CommandRequest>();
+
+        ArrayList<ArrayList<SocketChannel>> activeSockets = new ArrayList<ArrayList<SocketChannel>>();
+        RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl = new RejectedExecutionHandlerImplementation();
+        ThreadPoolExecutor executorService = new ThreadPoolExecutor(1, maxActiveThreads, threadMaxCompleteTime,
+                TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(),
+                rejectedExecutionHandlerImpl);
+        ThreadPoolExecutor recieverService = new ThreadPoolExecutor(1, maxRecieverThreads, threadMaxCompleteTime,
+                TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(),
+                rejectedExecutionHandlerImpl);
+        ThreadPoolExecutor priorityService = new ThreadPoolExecutor(1, 1, threadMaxCompleteTime, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
+        ConcurrentLinkedDeque<CommandRequest> requestQueue = new ConcurrentLinkedDeque<CommandRequest>();
         List<Thread> activeThreads = new ArrayList<Thread>();
         List<Integer> threadTimers = new ArrayList<Integer>();
-        
+        List<Integer> socketTimers = new ArrayList<Integer>();
         Runnable priority = () -> {
             Thread t = Thread.currentThread();
             t.setPriority(1);
@@ -204,50 +212,35 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                         activeThreads.get(i).setPriority(7);
                     } else if (threadTimers.get(i).intValue() == 2000) {
                         activeThreads.get(i).setPriority(10);
-                        t.interrupt();
-                    }
-                    long millis = 1;
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
                     }
                 }
-
-
-            }
-        };
-        Runnable recieve = () -> {
-            Thread t=Thread.currentThread();
-            t.setPriority(3);
-            ByteBuffer buffer=ByteBuffer.allocate(defaultBufferSize);
-            while(active){
-                for(int i=0; i<activeSockets.size();i++){
-                    try {
-                        activeSockets.get(i).read(buffer);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    if(buffer!=null){
-                        CommandRequest request=new CommandRequest(activeSockets.get(i),buffer);
-                        requestQueue.addLast(request);
-                        buffer.clear();
+                for (int i = 0; i < socketTimers.size(); i++) {
+                    socketTimers.set(i, new Integer(threadTimers.get(i).intValue() + 1));
+                    if (socketTimers.get(i) >= timeOut) {
+                        double a = i / maxRecieverThreads;
+                        activeSockets.get((int) Math.round(Math.floor(a))).remove(i % maxRecieverThreads);
                     }
                 }
+                long millis = 1;
+                try {
+                    Thread.sleep(millis);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
+
         };
         Runnable processRespond = () -> {
-            boolean hasWork=false;
-            CommandRequest request=new CommandRequest();
+            boolean hasWork = false;
+            CommandRequest request = new CommandRequest();
             try {
-                SocketChannel socket=SocketChannel.open();
-                while(active){
-                    if(!hasWork){
-                        request=requestQueue.pollFirst();
+                SocketChannel socket = SocketChannel.open();
+                while (active) {
+                    if (!hasWork) {
+                        request = requestQueue.pollFirst();
                         socket = request.getChannel();
-                        hasWork=true;
-                    }
-                    else if(hasWork){    
+                        hasWork = true;
+                    } else if (hasWork) {
                         final Thread currentThread = Thread.currentThread();
                         activeThreads.add(currentThread);
                         threadTimers.add(new Integer(0));
@@ -273,7 +266,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            hasWork=false;
+                            hasWork = false;
                             continue;
                         } else if (commandComponents[0].equals("put")) {
                             InetSocketAddress daemon = put(commandComponents[1], commandComponents[2]);
@@ -286,7 +279,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            hasWork=false;
+                            hasWork = false;
                             continue;
                         } else if (commandComponents[0].equals("remove")) {
                             StorageKey key = (StorageKey) get(commandComponents[1]);
@@ -302,37 +295,60 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                                 e.printStackTrace();
                             }
                             remove(commandComponents[1]);
-                            hasWork=false;
+                            hasWork = false;
                             continue;
                         }
                     }
-                }  
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            
-        };
-        
-        executorService.execute(recieve);
-        executorService.execute(priority);
-        for(int i=0;i<maxActiveThreads;i++){
-            executorService.execute(processRespond);
-        }
-        while (active) {
-            try {
-                SocketChannel socket = serverSocket.accept();
-                if (socket != null) {
-                    activeSockets.add(socket);
-                    
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            if (requestQueue.size() != 0 && executorService.getActiveCount() < maxActiveThreads) {
-                
-            } else {
-                continue;
+
+        };
+
+        IntStream.range(0, maxRecieverThreads).forEach(currentReciever -> recieverService.execute(() -> {
+            int threadNumber = currentReciever;
+            Thread t = Thread.currentThread();
+            t.setPriority(3);
+            ByteBuffer buffer = ByteBuffer.allocate(defaultBufferSize);
+            while (active) {
+                for (int i = 0; i < activeSockets.get(threadNumber).size(); i++) {
+                    try {
+                        activeSockets.get(threadNumber).get(i).read(buffer);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    if (buffer != null) {
+                        CommandRequest request = new CommandRequest(activeSockets.get(threadNumber).get(i), buffer);
+                        requestQueue.addLast(request);
+                        buffer.clear();
+                        activeSockets.get(threadNumber).remove(i);
+                    }
+                }
             }
+        }));
+        activeSockets.add(new ArrayList<SocketChannel>());
+        priorityService.execute(priority);
+        for (int i = 0; i < maxActiveThreads; i++) {
+            executorService.execute(processRespond);
+        }
+        int currentReceiverThread = 0;
+        while (active) {
+            try {
+                currentReceiverThread++;
+                if (currentReceiverThread == maxRecieverThreads - 1) {
+                    currentReceiverThread = 0;
+                }
+                SocketChannel socket = serverSocket.accept();
+                if (socket != null) {
+                    activeSockets.get(currentReceiverThread).add(socket);
+                    socketTimers.add(new Integer(0));
+
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 
