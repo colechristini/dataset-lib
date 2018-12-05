@@ -233,15 +233,19 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         Runnable processRespond = () -> {
             boolean hasWork = false;
             CommandRequest request = new CommandRequest();
+            final Thread currentThread = Thread.currentThread();
             try {
                 SocketChannel socket = SocketChannel.open();
                 while (active) {
                     if (!hasWork) {
+                        currentThread.setPriority(1);
                         request = requestQueue.pollFirst();
                         socket = request.getChannel();
                         hasWork = true;
                     } else if (hasWork) {
-                        final Thread currentThread = Thread.currentThread();
+                        
+                        currentThread.setPriority(3);
+                        int currentThreadPosition=activeThreads.size();
                         activeThreads.add(currentThread);
                         threadTimers.add(new Integer(0));
                         ByteBuffer buffer = request.getBuffer();
@@ -266,6 +270,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
+                            threadTimers.remove(currentThreadPosition);
                             hasWork = false;
                             continue;
                         } else if (commandComponents[0].equals("put")) {
@@ -279,6 +284,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
+                            threadTimers.remove(currentThreadPosition);
                             hasWork = false;
                             continue;
                         } else if (commandComponents[0].equals("remove")) {
@@ -295,6 +301,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                                 e.printStackTrace();
                             }
                             remove(commandComponents[1]);
+                            threadTimers.remove(currentThreadPosition);
                             hasWork = false;
                             continue;
                         }

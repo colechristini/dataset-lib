@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 //ImportManager is a basic manager for a List of ImportThreads allowing for rapid, multithreaded import of files from disk.
-public class ImportManager implements Callable < ByteBuffer >, Manager {
+public class ImportManager implements Callable < ByteBuffer >{
     RandomAccessFile file;
     int threadPoolSize;
     String globalLogger;

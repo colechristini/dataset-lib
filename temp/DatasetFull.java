@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
-public class DatasetFull /*implements dataset*/{
+public class DatasetFull implements dataset{
 
 
         //Import

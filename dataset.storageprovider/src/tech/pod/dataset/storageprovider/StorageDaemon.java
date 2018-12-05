@@ -130,7 +130,7 @@ public class StorageDaemon {
             if (commandComponents[0].equals("get")) {
                 buffer.clear();
                 if (Integer.toHexString(commandComponents[3].hashCode()) == authCodes.get(commandComponents[1])) {
-                    buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for aways using default buffer size
+                    buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
                     try{
                     RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
                     FileChannel fileChannel = file.getChannel();
@@ -145,7 +145,7 @@ public class StorageDaemon {
                 } else {
                     return;
                 }
-            } else if (commandComponents[0].equals("set")) {
+            } else if (commandComponents[0].equals("put")) {
                 try {
                     RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] = "/" + commandComponents[1] + ".dtrec", "w");
                     authCodes.put(commandComponents[1],Integer.toHexString(commandComponents[3].hashCode()));

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 /*AppServer acts as a basic wrapper for a servable AppServlet, taking input over a user inputted port and calling the corresponding AppServlet method contained in 'methods' */
 public class AppServer {
     boolean acceptingConnections;
@@ -92,7 +93,6 @@ public class AppServer {
             p=socketChannel.size();
             if (socketChannel != null) {
                 ScheduledFuture future = executorService.submit(serverThread);
-                i = futures.size();
                 futures.add(future);
             }
         }
