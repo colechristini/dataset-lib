@@ -189,33 +189,31 @@ public class StorageDaemon {
                             catch(IOException e){
                                 e.printStackTrace();
                             }
-                        }
-                    } else {
-                        return;
-                    }
-                }
-                else if(Files.getAttribute(Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec"), "user:authcode")!=null){
-                    SecretKey saltKey=salt.getKey("salt", Integer.toHexString(InetAddress.getLocalHost().getHostName()).hashCode());
-                    String auth=commandComponents[3]+saltKey.getEncoded().toString();
-                    if ( Integer.toHexString(auth.hashCode()) == Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "user:authcode")){
-                        buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
-                        try{
-                            RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
-                            FileChannel fileChannel = file.getChannel();
-                            int bytesRead = fileChannel.read(buffer);
-                            file.close();
-                            buffer.flip();
-                            socket.write(buffer);
-                        }
-                        catch(IOException e){
-                            e.printStackTrace();
+                        
+                        } else {
+                            return;
                         }
                     }
-                } else {
-                    return;
-                }
-                }
-                    
+                    else if(useAttributePasswordStorage==true){
+                        if(Files.getAttribute(Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec"), "user:authcode")!=null){
+                            if ( Integer.toHexString(auth.hashCode()) == Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "user:authcode")){
+                                buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
+                                try{
+                                    RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
+                                    FileChannel fileChannel = file.getChannel();
+                                    int bytesRead = fileChannel.read(buffer);
+                                    file.close();
+                                    buffer.flip();
+                                    socket.write(buffer);
+                                }
+                                catch(IOException e){
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                return;
+                            }
+                        }
+                    }
                 }
                 else{
                     try{
