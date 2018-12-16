@@ -3,6 +3,8 @@ package tech.pod.dataset.storageprovider;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.PublicKey;
 import java.io.File;
@@ -50,14 +52,20 @@ public class StorageDaemon {
     int timeOut;
     int threadMaxCompleteTime;
     KeyStore salt = KeyStore.getInstance(KeyStore.getDefaultType());
+    boolean useAttributePasswordStorage;
 
     StorageDaemon(boolean isActive, InetSocketAddress daemonIP, int defaultBufferSize, String[] tierLocations,
-            int maxActiveThreads, int timeOut, int threadMaxCompleteTime) {
+            int maxActiveThreads, int timeOut, int threadMaxCompleteTime, boolean useAttributePasswordStorage) {
         this.isActive = isActive;
         this.daemonIP = daemonIP;
         this.defaultBufferSize = defaultBufferSize;
         this.tierLocations = tierLocations;
         this.maxActiveThreads = maxActiveThreads;
+        if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix") && useAttributePasswordStorage) {
+            this.useAttributePasswordStorage = true;
+        } else {
+            this.useAttributePasswordStorage = false;
+        }
         try {
             serverSocket.bind(daemonIP);
         } catch (IOException e) {
@@ -96,6 +104,15 @@ public class StorageDaemon {
 
     public void stop() {
         active = false;
+    }
+
+    /*
+     * lower for security, higher for performance. If it crashes between backups,
+     * any passwords since the previous backup will be lost, and those files will be
+     * exposed. There is a unix-only config option to prevent this, by writing
+     * passwords to extended attributes.
+     */
+    public void scheduleAuthcodeBackup(int millisBetweenBackups) {
     }
 
     public void recieve() {
@@ -158,7 +175,29 @@ public class StorageDaemon {
                 if(commandComponents.length==3){
                     SecretKey saltKey=salt.getKey("salt", Integer.toHexString(InetAddress.getLocalHost().getHostName()).hashCode());
                     String auth=commandComponents[3]+saltKey.getEncoded().toString();
-                    if (Integer.toHexString(auth.hashCode()) == authCodes.get(commandComponents[1]))) {
+                    if(authCodes.containsKey(commandComponents[1])){
+                        if (Integer.toHexString(auth.hashCode()) == authCodes.get(commandComponents[1])){
+                            buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
+                            try{
+                                RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
+                                FileChannel fileChannel = file.getChannel();
+                                int bytesRead = fileChannel.read(buffer);
+                                file.close();
+                                buffer.flip();
+                                socket.write(buffer);
+                            }
+                            catch(IOException e){
+                                e.printStackTrace();
+                            }
+                        }
+                    } else {
+                        return;
+                    }
+                }
+                else if(Files.getAttribute(Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec"), "user:authcode")!=null){
+                    SecretKey saltKey=salt.getKey("salt", Integer.toHexString(InetAddress.getLocalHost().getHostName()).hashCode());
+                    String auth=commandComponents[3]+saltKey.getEncoded().toString();
+                    if ( Integer.toHexString(auth.hashCode()) == Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "user:authcode")){
                         buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
                         try{
                             RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
@@ -171,9 +210,12 @@ public class StorageDaemon {
                         catch(IOException e){
                             e.printStackTrace();
                         }
-                    } else {
-                        return;
                     }
+                } else {
+                    return;
+                }
+                }
+                    
                 }
                 else{
                     try{
@@ -188,66 +230,74 @@ public class StorageDaemon {
                         e.printStackTrace();
                     }
                 }
-            } else if (commandComponents[0].equals("put")) {
-                try {
-                    RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] = "/" + commandComponents[1] + ".dtrec", "w");
-                    SecretKey saltKey=salt.getKey("salt", Integer.toHexString(InetAddress.getLocalHost().getHostName()).hashCode());
-                    String auth=commandComponents[3]+saltKey.getEncoded().toString();
-                    authCodes.put(commandComponents[1],Integer.toHexString(auth.hashCode()));
-                    buffer.position(75);
-                    buffer = buffer.slice();
-                    buffer.flip();
-                    FileChannel channel = file.getChannel();
-                    try {
-                        file.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        channel.write(buffer);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    fileSizes.put(commandComponents[1], buffer.position());
-                    if (isActive) {
-                        try {
-                            SocketChannel activeShareSocketChannel = SocketChannel.open();
-                            for (int i = 1; i < stripeIPs.size(); i++) {
-                                try {
-                                    activeShareSocketChannel.connect(stripeIPs.get(i));
-                                    activeShareSocketChannel.finishConnect();
-                                    socket.write(buffer);
-                                    activeShareSocketChannel.close();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-            }
-        };
-        while (active) {
-            
+            }else if(commandComponents[0].equals("put"))
+
+    {
+        try {
+            RandomAccessFile file = new RandomAccessFile(
+                    tierLocations[(int) Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec",
+                    "w");
+            SecretKey saltKey = salt.getKey("salt",
+                    Integer.toHexString(InetAddress.getLocalHost().getHostName()).hashCode());
+            String auth = commandComponents[3] + saltKey.getEncoded().toString();
+            authCodes.put(commandComponents[1], Integer.toHexString(auth.hashCode()));
+            Files.setAttribute(Paths.get(tierLocations[(int) Integer.parseInt(commandComponents[2])] + "/"
+                    + commandComponents[1] + ".dtrec"), "user:authcode", Integer.toHexString(auth.hashCode()));
+            buffer.position(75);
+            buffer = buffer.slice();
+            buffer.flip();
+            FileChannel channel = file.getChannel();
             try {
-                SocketChannel socket= serverSocket.accept();
-                if (socket != null) {
-                    socketQueue.add(socket);
-                }
+                file.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-           
-            if (socketQueue.size() != 0 && executorService.getActiveCount() < maxActiveThreads) {
-                executorService.execute(recieve);
-            } else {
-                continue;
+            try {
+                channel.write(buffer);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            fileSizes.put(commandComponents[1], buffer.position());
+            if (isActive) {
+                try {
+                    SocketChannel activeShareSocketChannel = SocketChannel.open();
+                    for (int i = 1; i < stripeIPs.size(); i++) {
+                        try {
+                            activeShareSocketChannel.connect(stripeIPs.get(i));
+                            activeShareSocketChannel.finishConnect();
+                            socket.write(buffer);
+                            activeShareSocketChannel.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }};while(active)
+
+    {
+
+    try{
+    SocketChannel socket = serverSocket.accept();if(socket!=null)
+    {
+        socketQueue.add(socket);
+    }}catch(
+    IOException e)
+    {
+        e.printStackTrace();
     }
-}
+
+    if(socketQueue.size()!=0&&executorService.getActiveCount()<maxActiveThreads)
+    {
+        executorService.execute(recieve);
+    }else
+    {
+        continue;
+    }
+}}}
