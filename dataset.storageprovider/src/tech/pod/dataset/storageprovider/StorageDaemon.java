@@ -191,7 +191,9 @@ public class StorageDaemon {
             } else if (commandComponents[0].equals("put")) {
                 try {
                     RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] = "/" + commandComponents[1] + ".dtrec", "w");
-                    authCodes.put(commandComponents[1],Integer.toHexString((commandComponents[3]+).hashCode()));
+                    SecretKey saltKey=salt.getKey("salt", Integer.toHexString(InetAddress.getLocalHost().getHostName()).hashCode());
+                    String auth=commandComponents[3]+saltKey.getEncoded().toString();
+                    authCodes.put(commandComponents[1],Integer.toHexString(auth.hashCode()));
                     buffer.position(75);
                     buffer = buffer.slice();
                     buffer.flip();
