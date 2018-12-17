@@ -368,11 +368,11 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         if (storagePools.get(pool) instanceof HeterogenousPool) {
             HeterogenousPool currentPool = (HeterogenousPool) storagePools.get(pool);
             Integer temp = Integer.parseInt(tier);
-            StorageKey key = new StorageKey(pool, stripe, objectName, Integer.toHexString(objectName.hashCode()));
+            StorageKey key = new StorageKey(pool, stripe, objectName);
             files.put(objectName, key);
             return currentPool.getDaemonByTier(temp.intValue());
         } else {
-            StorageKey key = new StorageKey(pool, stripe, objectName, Integer.toHexString(objectName.hashCode()));
+            StorageKey key = new StorageKey(pool, stripe, objectName);
             files.put(objectName, key);
             return storagePools.get(pool).getDaemon(stripe);
         }

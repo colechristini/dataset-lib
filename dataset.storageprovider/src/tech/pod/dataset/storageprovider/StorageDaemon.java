@@ -1,14 +1,20 @@
 package tech.pod.dataset.storageprovider;
 
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.UnrecoverableKeyException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
@@ -16,6 +22,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,14 +34,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.security.auth.DestroyFailedException;
 
 import java.security.KeyStore.SecretKeyEntry;
+import java.security.cert.CertificateException;
 
 //StorageDaemons run on individual servers, managing the files on the server and replicationg them to all servers within the stripe.
 public class StorageDaemon {
@@ -51,7 +61,7 @@ public class StorageDaemon {
     String[] tierLocations;
     int timeOut;
     int threadMaxCompleteTime;
-    KeyStore salt = KeyStore.getInstance(KeyStore.getDefaultType());
+    KeyStore salt;
     boolean useAttributePasswordStorage;
 
     StorageDaemon(boolean isActive, InetSocketAddress daemonIP, int defaultBufferSize, String[] tierLocations,
@@ -77,24 +87,60 @@ public class StorageDaemon {
         if (keyStore.exists()) {
             try {
                 InputStream stream = new FileInputStream(keyStore);
-                salt.load(stream,
-                        Integer.toHexString(InetAddress.getLocalHost().getHostName().hashCode()).toCharArray());
+                try {
+                    try {
+                        salt.load(stream,Integer.toHexString(InetAddress.getLocalHost().getHostName().hashCode()).toCharArray());
+                    } catch (CertificateException ce) {
+                        ce.printStackTrace();
+                    }
+                } catch (NoSuchAlgorithmException nsae) {
+                    nsae.printStackTrace();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
         } else {
             try {
-                salt.load(null, null);
+                try {
+                    try {
+                        salt.load(null, null); 
+                    } catch (CertificateException ce) {
+                        ce.printStackTrace();
+                    }
+                    
+                } catch (NoSuchAlgorithmException nsae) {
+                    nsae.printStackTrace();
+                }
+                
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(
+            try {
+                KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(
                     Integer.toHexString(InetAddress.getLocalHost().getHostName().hashCode()).toCharArray());
-            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-            keyGen.init(256); // for example
-            SecretKey secretKey = keyGen.generateKey();
-            salt.setEntry("salt", new SecretKeyEntry(secretKey), protParam);
+                try {
+                    KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+                    keyGen.init(256); // for example
+                    SecretKey secretKey = keyGen.generateKey();
+                    try {
+                        salt.setEntry("salt", new SecretKeyEntry(secretKey), protParam);
+                    } catch (KeyStoreException kse) {
+                        kse.printStackTrace();
+                    } 
+                } catch (NoSuchAlgorithmException nsae) {
+                    nsae.printStackTrace();
+                }
+            } catch (UnknownHostException uhe) {
+                uhe.printStackTrace();
+            }
+        try {
+            KeyStore.getInstance(KeyStore.getDefaultType());
+        } catch (KeyStoreException kse) {
+            kse.printStackTrace();
+        }
+            
+            
         }
     }
 
@@ -109,15 +155,14 @@ public class StorageDaemon {
     /*
      * lower for security, higher for performance. If it crashes between backups,
      * any passwords since the previous backup will be lost, and those files will be
-     * exposed. There is a unix-only config option to prevent this, by writing
+     * exposed to access without passwords. There is a unix-only config option to prevent this, by writing
      * passwords to extended attributes.
      */
     public void scheduleAuthcodeBackup(int millisBetweenBackups) {
     }
 
     public void recieve() {
-        RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl=new RejectedExecutionHandlerImplementation();
-        ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads, threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(), rejectedExecutionHandlerImpl);
+        ThreadPoolExecutor executorService = new ThreadPoolExecutor(2, maxActiveThreads, threadMaxCompleteTime, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(), new RejectedExecutionHandlerImplementation());
         Runnable recieve = () -> {
             SocketChannel socket = socketQueue.pollFirst();
             final Thread currentThread = Thread.currentThread();
@@ -173,48 +218,82 @@ public class StorageDaemon {
             if (commandComponents[0].equals("get")) {
                 buffer.clear();
                 if(commandComponents.length==3){
-                    SecretKey saltKey=salt.getKey("salt", Integer.toHexString(InetAddress.getLocalHost().getHostName()).hashCode());
-                    String auth=commandComponents[3]+saltKey.getEncoded().toString();
-                    if(authCodes.containsKey(commandComponents[1])){
-                        if (Integer.toHexString(auth.hashCode()) == authCodes.get(commandComponents[1])){
-                            buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
-                            try{
-                                RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
-                                FileChannel fileChannel = file.getChannel();
-                                int bytesRead = fileChannel.read(buffer);
-                                file.close();
-                                buffer.flip();
-                                socket.write(buffer);
+                    try {
+                        try {
+                            try {
+                                try {
+                                    SecretKey saltKey=(SecretKey)salt.getKey("salt", Integer.toHexString(InetAddress.getLocalHost().getHostName().hashCode()).toCharArray());
+                                    String auth=commandComponents[3]+saltKey.getEncoded().toString();
+                                    if(authCodes.containsKey(commandComponents[1])){
+                                        if (Integer.toHexString(auth.hashCode()) == authCodes.get(commandComponents[1])){
+                                            buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
+                                            try{
+                                                RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
+                                                FileChannel fileChannel = file.getChannel();
+                                                int bytesRead = fileChannel.read(buffer);
+                                                file.close();
+                                                buffer.flip();
+                                                socket.write(buffer);
+                                            }
+                                            catch(IOException e){
+                                                e.printStackTrace();
+                                            }
+                                        
+                                        } else {
+                                            return;
+                                        }
+                                    }
+                                    else if(useAttributePasswordStorage==true){
+                                        try {
+                                            String cachedCode=(String)Files.getAttribute(Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec"), "user:authcode");
+                                            if(cachedCode!=null){
+                                                String authcode=Integer.toHexString(auth.hashCode());
+                                                
+                                                    if(  authcode.equals(cachedCode) ){
+                                                        buffer = buffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
+                                                        try{
+                                                            RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
+                                                            FileChannel fileChannel = file.getChannel();
+                                                            int bytesRead = fileChannel.read(buffer);
+                                                            file.close();
+                                                            buffer.flip();
+                                                            socket.write(buffer);
+                                                        }
+                                                        catch(IOException e){
+                                                            e.printStackTrace();
+                                                        }
+                                                    } else {
+                                                        return;
+                                                    }
+                                            
+                                        }  
+                                        } catch (IOException IOe) {
+                                            IOe.printStackTrace();
+                                        }
+                                        try {
+                                            saltKey.destroy();
+                                        } catch (DestroyFailedException dse) {
+                                            dse.printStackTrace();
+                                        } 
+                                       
+                                }
+                                } catch (UnknownHostException uhe) {
+                                    uhe.printStackTrace();
+                                }
+                            } catch (UnrecoverableKeyException uke) {
+                                uke.printStackTrace();
                             }
-                            catch(IOException e){
-                                e.printStackTrace();
-                            }
+                   
+                   
+                        } catch (NoSuchAlgorithmException nsa) {
+                            nsa.printStackTrace();
+                        }
                         
-                        } else {
-                            return;
-                        }
+                    } catch (KeyStoreException kse) {
+                        kse.printStackTrace();
                     }
-                    else if(useAttributePasswordStorage==true){
-                        if(Files.getAttribute(Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec"), "user:authcode")!=null){
-                            if ( Integer.toHexString(auth.hashCode()) == Paths.get(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "user:authcode")){
-                                buffer = ByteBuffer.allocate(fileSizes.get(commandComponents[1]));//change to config option for always using default buffer size
-                                try{
-                                    RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
-                                    FileChannel fileChannel = file.getChannel();
-                                    int bytesRead = fileChannel.read(buffer);
-                                    file.close();
-                                    buffer.flip();
-                                    socket.write(buffer);
-                                }
-                                catch(IOException e){
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                return;
-                            }
-                        }
-                    }
-                }
+                    
+            }
                 else{
                     try{
                         RandomAccessFile file = new RandomAccessFile(tierLocations[(int)Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec", "r");
@@ -228,74 +307,92 @@ public class StorageDaemon {
                         e.printStackTrace();
                     }
                 }
-            }else if(commandComponents[0].equals("put"))
-
-    {
-        try {
-            RandomAccessFile file = new RandomAccessFile(
-                    tierLocations[(int) Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec",
-                    "w");
-            SecretKey saltKey = salt.getKey("salt",
-                    Integer.toHexString(InetAddress.getLocalHost().getHostName()).hashCode());
-            String auth = commandComponents[3] + saltKey.getEncoded().toString();
-            authCodes.put(commandComponents[1], Integer.toHexString(auth.hashCode()));
-            Files.setAttribute(Paths.get(tierLocations[(int) Integer.parseInt(commandComponents[2])] + "/"
-                    + commandComponents[1] + ".dtrec"), "user:authcode", Integer.toHexString(auth.hashCode()));
-            buffer.position(75);
-            buffer = buffer.slice();
-            buffer.flip();
-            FileChannel channel = file.getChannel();
-            try {
-                file.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                channel.write(buffer);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            fileSizes.put(commandComponents[1], buffer.position());
-            if (isActive) {
+            }else if(commandComponents[0].equals("put")){
                 try {
-                    SocketChannel activeShareSocketChannel = SocketChannel.open();
-                    for (int i = 1; i < stripeIPs.size(); i++) {
-                        try {
-                            activeShareSocketChannel.connect(stripeIPs.get(i));
-                            activeShareSocketChannel.finishConnect();
-                            socket.write(buffer);
-                            activeShareSocketChannel.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                RandomAccessFile file = new RandomAccessFile(
+                        tierLocations[(int) Integer.parseInt(commandComponents[2])] + "/" + commandComponents[1] + ".dtrec",
+                        "w");
+                try {
+                    try{
+                        try{
+                        SecretKey saltKey = (SecretKey)salt.getKey("salt", Integer.toHexString(InetAddress.getLocalHost().getHostName().hashCode()).toCharArray());
+                        String auth = commandComponents[3] + saltKey.getEncoded().toString();
+                        authCodes.put(commandComponents[1], Integer.toHexString(auth.hashCode()));
+                        if(useAttributePasswordStorage){
+                            Files.setAttribute(Paths.get(tierLocations[(int) Integer.parseInt(commandComponents[2])] + "/"
+                            + commandComponents[1] + ".dtrec"), "user:authcode", Integer.toHexString(auth.hashCode()));
                         }
-
+                        try {
+                            saltKey.destroy();
+                        } catch (DestroyFailedException e) {
+                            e.printStackTrace();
+                        }}
+                        catch(UnrecoverableKeyException uke){
+                            uke.printStackTrace();
+                        }
+                    }catch(NoSuchAlgorithmException nsa){
+                        nsa.printStackTrace();
                     }
+                } catch (KeyStoreException kse) {
+                    kse.printStackTrace();
+                }
+                catch(FileNotFoundException fne){
+                    fne.printStackTrace();
+                }
+                buffer.position(75);
+                buffer = buffer.slice();
+                buffer.flip();
+                FileChannel channel = file.getChannel();
+                try {
+                    file.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                try {
+                    channel.write(buffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                fileSizes.put(commandComponents[1], buffer.position());
+                if (isActive) {
+                    try {
+                        SocketChannel activeShareSocketChannel = SocketChannel.open();
+                        for (int i = 1; i < stripeIPs.size(); i++) {
+                            try {
+                                activeShareSocketChannel.connect(stripeIPs.get(i));
+                                activeShareSocketChannel.finishConnect();
+                                socket.write(buffer);
+                                activeShareSocketChannel.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
+        }
+    };
+    while(active){
+        try{
+        SocketChannel socket = serverSocket.accept();
+        if(socket!=null){
+            socketQueue.add(socket);
+        }
+        }catch(IOException e){
             e.printStackTrace();
         }
-    }};while(active)
-
-    {
-
-    try{
-    SocketChannel socket = serverSocket.accept();if(socket!=null)
-    {
-        socketQueue.add(socket);
-    }}catch(
-    IOException e)
-    {
-        e.printStackTrace();
+        if(socketQueue.size()!=0&&executorService.getActiveCount()<maxActiveThreads)
+        {
+            executorService.execute(recieve);
+        }else
+        {
+            continue;
+        }
     }
-
-    if(socketQueue.size()!=0&&executorService.getActiveCount()<maxActiveThreads)
-    {
-        executorService.execute(recieve);
-    }else
-    {
-        continue;
-    }
-}}}
+};
+}

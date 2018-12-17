@@ -9,7 +9,6 @@ public class StorageKey implements Serializable {
     String name;
     static final UUID uuid = UUID.randomUUID();
     static final long serialVersionUID = Integer.parseInt(uuid.toString());
-
     StorageKey(int pool, int stripe, String name) {
         this.pool = pool;
         this.stripe = stripe;
