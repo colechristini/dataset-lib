@@ -15,8 +15,11 @@ import java.security.UnrecoverableKeyException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -117,6 +120,11 @@ public class StorageDaemon {
                 e.printStackTrace();
             }
             try {
+                salt=KeyStore.getInstance(KeyStore.getDefaultType());
+            } catch (KeyStoreException kse) {
+                kse.printStackTrace();
+            }
+            try {
                 KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(
                     Integer.toHexString(InetAddress.getLocalHost().getHostName().hashCode()).toCharArray());
                 try {
@@ -127,20 +135,33 @@ public class StorageDaemon {
                         salt.setEntry("salt", new SecretKeyEntry(secretKey), protParam);
                     } catch (KeyStoreException kse) {
                         kse.printStackTrace();
-                    } 
+                    }
+                    try {
+                        OutputStream stream=new FileOutputStream(keyStore);
+                        char[] password=Integer.toHexString(InetAddress.getLocalHost().getHostName().hashCode()).toCharArray();
+                        try {
+                            try {
+                                try {
+                                    salt.store(stream, password);
+                                } catch (CertificateException ce) {
+                                    ce.printStackTrace();
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        } catch (KeyStoreException kse) {
+                            kse.printStackTrace();
+                        }   
+                    } catch (FileNotFoundException fnfe) {
+                        fnfe.printStackTrace();
+                    }
                 } catch (NoSuchAlgorithmException nsae) {
                     nsae.printStackTrace();
                 }
             } catch (UnknownHostException uhe) {
                 uhe.printStackTrace();
             }
-        try {
-            KeyStore.getInstance(KeyStore.getDefaultType());
-        } catch (KeyStoreException kse) {
-            kse.printStackTrace();
-        }
-            
-            
+       
         }
     }
 
@@ -157,8 +178,19 @@ public class StorageDaemon {
      * any passwords since the previous backup will be lost, and those files will be
      * exposed to access without passwords. There is a unix-only config option to prevent this, by writing
      * passwords to extended attributes.
+     * First backup will execute after the given delay
      */
-    public void scheduleAuthcodeBackup(int millisBetweenBackups) {
+    public void scheduleAuthcodeBackup(long millisBetweenBackups) {
+        Runnable executeBackup= () -> {
+            final ConcurrentHashMap currentAuthCodeState=authCodes;
+            ObjectOutputStream stream=new ObjectOutputStream(new FileOutputStream(new File(tierLocations[tierLocations.length-1]+"/fileAuthCodes.dat")));//could be changed for less storage
+            stream.writeObject(currentAuthCodeState);
+            return;
+        };
+        ScheduledExecutorService service=Executors.newScheduledThreadPool(1);
+        service.schedule(executeBackup, millisBetweenBackups, TimeUnit.MILLISECONDS);
+
+
     }
 
     public void recieve() {
