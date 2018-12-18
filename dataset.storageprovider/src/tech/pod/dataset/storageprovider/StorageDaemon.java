@@ -66,14 +66,16 @@ public class StorageDaemon {
     int threadMaxCompleteTime;
     KeyStore salt;
     boolean useAttributePasswordStorage;
+    int defaultPort;
 
-    StorageDaemon(boolean isActive, InetSocketAddress daemonIP, int defaultBufferSize, String[] tierLocations,
+    StorageDaemon(boolean isActive, InetSocketAddress daemonIP,int defaultPort, int defaultBufferSize, String[] tierLocations,
             int maxActiveThreads, int timeOut, int threadMaxCompleteTime, boolean useAttributePasswordStorage) {
         this.isActive = isActive;
         this.daemonIP = daemonIP;
         this.defaultBufferSize = defaultBufferSize;
         this.tierLocations = tierLocations;
         this.maxActiveThreads = maxActiveThreads;
+        this.defaultPort=defaultPort;
         if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix") && useAttributePasswordStorage) {
             this.useAttributePasswordStorage = true;
         } else {
@@ -185,6 +187,22 @@ public class StorageDaemon {
             final ConcurrentHashMap currentAuthCodeState=authCodes;
             ObjectOutputStream stream=new ObjectOutputStream(new FileOutputStream(new File(tierLocations[tierLocations.length-1]+"/fileAuthCodes.dat")));//could be changed for less storage
             stream.writeObject(currentAuthCodeState);
+            
+            try {
+                
+                for (int i = 1; i < stripeIPs.size(); i++) {
+                    try {
+                        Socket socket=new Socket(stripIPs.get(i),defaultPort);
+                        stream=socket.getOutputStream();
+                        stream.writeObject(currentAuthCodeState);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return;
         };
         ScheduledExecutorService service=Executors.newScheduledThreadPool(1);
