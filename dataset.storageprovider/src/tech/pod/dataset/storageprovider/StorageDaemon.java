@@ -83,6 +83,7 @@ public class StorageDaemon {
         }
         try {
             serverSocket.bind(daemonIP);
+            ServerSocket.configureBlocking(false);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -187,7 +188,6 @@ public class StorageDaemon {
             final ConcurrentHashMap currentAuthCodeState=authCodes;
             ObjectOutputStream stream=new ObjectOutputStream(new FileOutputStream(new File(tierLocations[tierLocations.length-1]+"/fileAuthCodes.dat")));//could be changed for less storage
             stream.writeObject(currentAuthCodeState);
-            
             try {
                 
                 for (int i = 1; i < stripeIPs.size(); i++) {
@@ -207,7 +207,7 @@ public class StorageDaemon {
         };
         ScheduledExecutorService service=Executors.newScheduledThreadPool(1);
         service.schedule(executeBackup, millisBetweenBackups, TimeUnit.MILLISECONDS);
-
+        ObjectOutputStream stream=new ObjectOutputStream(out)
 
     }
 

@@ -14,7 +14,9 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -25,9 +27,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.stream.IntStream;
 // DistributedStorageProvider acts as a more advanced on-premises StorageProvider, saving, getting,
 // and removing objects from a set of distributed StoragePools
-import java.util.stream.IntStream;
 
 public class DistributedStorageProvider implements StorageProviderInterface {
     ConcurrentHashMap<String, Boolean> heartbeatMap = new ConcurrentHashMap<String, Boolean>();
@@ -52,6 +56,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         this.maxRecieverThreads = maxRecieverThreads;
         try {
             serverSocket.bind(ip, 9999);
+            serverSocket.configureBlocking(false);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -67,6 +72,7 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         this.maxRecieverThreads = maxRecieverThreads;
         try {
             serverSocket.bind(ip, port);
+            serverSocket.configureBlocking(false);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -186,9 +192,12 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         ScheduledFuture<?> future = service.scheduleWithFixedDelay(heartbeat, heartbeatTimer, heartbeatTimer, unit);
     }
 
-    public void startRecieve(String port) {
+    public void startRecieve(String port) throws IOException {
+        Selector[] selectors = new Selector[maxRecieverThreads];
+        for (Selector selector : selectors) {
+            selector = Selector.open();
+        }
 
-        ArrayList<ArrayList<SocketChannel>> activeSockets = new ArrayList<ArrayList<SocketChannel>>();
         RejectedExecutionHandlerImplementation rejectedExecutionHandlerImpl = new RejectedExecutionHandlerImplementation();
         ThreadPoolExecutor executorService = new ThreadPoolExecutor(1, maxActiveThreads, threadMaxCompleteTime,
                 TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2), Executors.defaultThreadFactory(),
@@ -201,7 +210,6 @@ public class DistributedStorageProvider implements StorageProviderInterface {
         ConcurrentLinkedDeque<CommandRequest> requestQueue = new ConcurrentLinkedDeque<CommandRequest>();
         List<Thread> activeThreads = new ArrayList<Thread>();
         List<Integer> threadTimers = new ArrayList<Integer>();
-        List<Integer> socketTimers = new ArrayList<Integer>();
         Runnable priority = () -> {
             Thread t = Thread.currentThread();
             t.setPriority(1);
@@ -212,13 +220,6 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                         activeThreads.get(i).setPriority(7);
                     } else if (threadTimers.get(i).intValue() == 2000) {
                         activeThreads.get(i).setPriority(10);
-                    }
-                }
-                for (int i = 0; i < socketTimers.size(); i++) {
-                    socketTimers.set(i, new Integer(threadTimers.get(i).intValue() + 1));
-                    if (socketTimers.get(i) >= timeOut) {
-                        double a = i / maxRecieverThreads;
-                        activeSockets.get((int) Math.round(Math.floor(a))).remove(i % maxRecieverThreads);
                     }
                 }
                 long millis = 1;
@@ -243,9 +244,9 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                         socket = request.getChannel();
                         hasWork = true;
                     } else if (hasWork) {
-                        
+
                         currentThread.setPriority(3);
-                        int currentThreadPosition=activeThreads.size();
+                        int currentThreadPosition = activeThreads.size();
                         activeThreads.add(currentThread);
                         threadTimers.add(new Integer(0));
                         ByteBuffer buffer = request.getBuffer();
@@ -319,22 +320,27 @@ public class DistributedStorageProvider implements StorageProviderInterface {
             t.setPriority(3);
             ByteBuffer buffer = ByteBuffer.allocate(defaultBufferSize);
             while (active) {
-                for (int i = 0; i < activeSockets.get(threadNumber).size(); i++) {
-                    try {
-                        activeSockets.get(threadNumber).get(i).read(buffer);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                try {
+                    selectors[threadNumber].select();
+                    Set<SelectionKey> selectedKeys = selectors[threadNumber].selectedKeys();
+                    Iterator<SelectionKey> iter = selectedKeys.iterator();
+                    while (iter.hasNext()) {
+                        SelectionKey key = iter.next();
+                        SocketChannel socket = (SocketChannel) key.channel();
+                        socket.read(buffer);
+                        if (buffer != null) {
+                            CommandRequest request = new CommandRequest(socket, buffer);
+                            requestQueue.addLast(request);
+                            buffer.clear();
+                            selectedKeys.remove(key);
+                        }
                     }
-                    if (buffer != null) {
-                        CommandRequest request = new CommandRequest(activeSockets.get(threadNumber).get(i), buffer);
-                        requestQueue.addLast(request);
-                        buffer.clear();
-                        activeSockets.get(threadNumber).remove(i);
-                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
+
             }
         }));
-        activeSockets.add(new ArrayList<SocketChannel>());
         priorityService.execute(priority);
         for (int i = 0; i < maxActiveThreads; i++) {
             executorService.execute(processRespond);
@@ -347,17 +353,14 @@ public class DistributedStorageProvider implements StorageProviderInterface {
                     currentReceiverThread = 0;
                 }
                 SocketChannel socket = serverSocket.accept();
-                if (socket != null) {
-                    activeSockets.get(currentReceiverThread).add(socket);
-                    socketTimers.add(new Integer(0));
-
-                }
+                socket.configureBlocking(false);
+                SelectionKey key = socket.register(selectors[currentReceiverThread], SelectionKey.OP_READ);
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
         }
-    }
+    };
 
     public InetSocketAddress put(String objectName, String tier) {
         stripe++;
